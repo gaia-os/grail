@@ -1,4 +1,4 @@
-# Simulator Tool
+# Sketching Ideas
 
 ## Questions
 
@@ -6,6 +6,40 @@
 2. How much do we want the simulation tools to be exposed to the user and how much do we want the system to be run via natural language?
 
 ## Glossary and Terms
+
+### Frame 
+
+A **Frame** is a collection of models staged to be used for a simulation.
+It will likely contain a mixture of data types and structures.
+World models, graph-relational or causal information, results, sim params...
+
+### Variable
+
+Every Frame has at least one Variable towards which to perform inference on.
+Observed data values will be associated with such variables.
+
+### Causal Graph
+
+Causal graphs are like more robust world models, depicting direct causal relationships.
+They allow for studying _interventions_ and _counterfactuals_.
+For instance, world models don't inherently distinguish between correlation and causation, unlike Causal.
+They are also more robust to distributional shifts.
+
+#### Causal Illustration
+
+Suppose you have three variables: Exercise (E), Health (H), and Age (A).
+
+- World Model: Might learn that E and H are correlated, and use this to predict health outcomes.
+- Causal Graph: Might show that Age affects both Exercise and Health, revealing that the E-H correlation is confounded by Age. Intervening on Exercise (do(E)) can then be properly analyzed for its causal effect on Health.
+
+### Initializer / Init
+
+As a toolkit, we will probably want some sort of initialization process.
+Maybe should be bundled into Engine
+
+### Stats dir
+
+The stats directory houses various statistical definitions and tools for GRAIL to use.
 
 ### The Interpreter
 
@@ -31,6 +65,19 @@ and sends the prepared package into the Runner.
 
 - This is where new models are built
 - It also **composes** such models from stored models in the library
+
+#### Frames
+
+Frames (defined above) are build in the Builder.
+Users(/LLM) should initialize a Frame, and then sequentially add elements to the Frame.
+This is the world model construction/initialization.
+The frame should also 
+
+#### Saving, Loading, etc.
+
+The Builder should have some means of saving and loading different products.
+This is to allow an external persistence that is not managed by GRAIL, and thus not required to be stored in RAM all the time.
+These can be packaged as **Frames**. 
 
 #### Thinking
 
