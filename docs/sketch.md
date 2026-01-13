@@ -100,6 +100,3 @@ Where constructed models are stored for retrieval.
 
 Data attached to a node
 
-#### Scratch
-
-Okay, there are several modules here LLMs jumping in and out
