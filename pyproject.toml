@@ -1,0 +1,48 @@
+[build-system]
+requires = ["hatchling>=1.25.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "grail"
+version = "0.1.0"
+description = "Graph Reasoning from AI Learning"
+readme = "README.md"
+requires-python = ">=3.13,<3.14"
+authors = [
+    { name = "GAIA Team" },
+    { name = "Michael Walters", email = "mw@gaia-lab.de" },
+]
+dependencies = [
+  "numpy>=2.0",
+  "pandas>=2.2",
+  "pymc>=5.13",
+]
+
+[project.optional-dependencies]
+# Extra groups that can be installed with: uv pip install .[viz] (or hatch -e ...)
+dev = [
+  "ruff>=0.6",
+  "black>=24.8",
+  "pytest>=8.3",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = [
+    #  { include = "grail", from = "src" }
+    "src/grail",
+]
+
+[tool.uv]
+# Let uv know we prefer using a managed Python 3.13 when possible.
+managed = true
+python-preference = "managed"
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.ruff]
+line-length = 100
+src = ["src"]
+
+[tool.black]
+line-length = 100
