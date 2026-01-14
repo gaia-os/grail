@@ -11,7 +11,7 @@ Ultimately, it will also take things a step further with Active Inference method
 What's inside:
 
 1. Tools to better track and manage your world models.
-2. AI-powered world model construction as PPL scripts, which are then stored for modular use.
+2. AI-powered world model construction as PPL scripts.
 3. Navigation with AI through statistical analysis tools.
 4. Active Inference policies that balance knowledge- and value-seeking actions.
 
