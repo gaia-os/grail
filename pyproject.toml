@@ -15,7 +15,8 @@ authors = [
 dependencies = [
   "numpy>=2.0",
   "pandas>=2.2",
-  "pymc>=5.13",
+  # "pymc>=5.13",
+  "pyro-ppl>=1.9.1",
 ]
 
 [project.optional-dependencies]

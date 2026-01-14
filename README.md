@@ -14,3 +14,11 @@ What's inside:
 2. AI-powered world model construction as PPL scripts, which are then stored for modular use.
 3. Navigation with AI through statistical analysis tools.
 4. Active Inference policies that balance knowledge- and value-seeking actions.
+
+## Version 0.X
+
+For our first version, we are focusing on developing the set of tools and functions etc.
+and setting aside agentic-orchestrator-type processes for now.
+
+We are also setting aside model management and storing for now, leaving that to the external application.
+However, we will provide the necessary I/O save/loading utils.

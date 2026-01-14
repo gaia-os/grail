@@ -3,7 +3,7 @@
 ## Questions
 
 1. Granularity. Do we want to guide granularity in construction or be more hands-off? I think the answer will become more apparent as we define model structures
-2. How much do we want the simulation tools to be exposed to the user and how much do we want the system to be run via natural language?
+2. Do we want an agentic-orchestrator type setup? Maybe not for first iteration. Let's start with first focusing on the tools. An agentic system would depend on this anyway.
 
 ## Glossary and Terms
 
@@ -12,6 +12,8 @@
 A **Frame** is a collection of models staged to be used for a simulation.
 It will likely contain a mixture of data types and structures.
 World models, graph-relational or causal information, results, sim params...
+
+- Question: Should subgraphs be a distinct mechanism from Frames? Or should these be mutually-dependent? (Each frame has a subgraph, each subgraph belongs to a frame)
 
 ### Variable
 
@@ -31,6 +33,11 @@ Suppose you have three variables: Exercise (E), Health (H), and Age (A).
 
 - World Model: Might learn that E and H are correlated, and use this to predict health outcomes.
 - Causal Graph: Might show that Age affects both Exercise and Health, revealing that the E-H correlation is confounded by Age. Intervening on Exercise (do(E)) can then be properly analyzed for its causal effect on Health.
+
+### Graph Methods
+
+We also want to provide the necessary toolset for performing various graph methods.
+This aspect is...probably "adjacent" to the other WM/statistical aspects..
 
 ### Initializer / Init
 
@@ -71,7 +78,10 @@ and sends the prepared package into the Runner.
 Frames (defined above) are build in the Builder.
 Users(/LLM) should initialize a Frame, and then sequentially add elements to the Frame.
 This is the world model construction/initialization.
-The frame should also 
+
+#### GRAIL YAML config spec
+
+Consider if we want to implement a GRAIL YAML spec, to interpret and construct models.
 
 #### Saving, Loading, etc.
 
@@ -87,6 +97,8 @@ The Builder has to do be capable of some careful thinking when it comes to const
   - This is especially relevant as builds become more advanced.
 
 ### The Library / Repo
+
+_We will postpone this in full for now, since we are first developing this in a more toolkit fashion._
 
 Where constructed models are stored for retrieval.
 
