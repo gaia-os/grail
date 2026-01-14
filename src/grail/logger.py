@@ -91,5 +91,4 @@ def log_to_file(log_path: Optional[str] = None, level: int = INFO):
     _logger.addHandler(file_handler)
 
 
-
 logger = get_logger()
