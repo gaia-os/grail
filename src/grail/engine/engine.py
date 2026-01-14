@@ -3,7 +3,7 @@ import pyro
 import torch
 from grail.builder.frame import Frame
 from grail.stats.distributions import DistributionFactory
-from grail.graph.base import Variable
+from grail.graph.base import VariableNode
 from grail.logger import logger
 
 class Engine:
@@ -32,7 +32,7 @@ class Engine:
             
             for node_id in topo_order:
                 node = graph.get_node(node_id)
-                if not isinstance(node, Variable):
+                if not isinstance(node, VariableNode):
                     continue
                 
                 # Check if this variable has parents
@@ -58,8 +58,8 @@ class Engine:
                 # Check for observed data
                 obs = None
                 if node.is_observed:
-                    if node.observed_value is not None:
-                        obs = torch.tensor(node.observed_value)
+                    if node.observations is not None:
+                        obs = torch.tensor(node.observations)
                     elif node_id in data:
                         obs = torch.tensor(data[node_id])
                 

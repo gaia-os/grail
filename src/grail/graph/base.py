@@ -20,12 +20,13 @@ class Edge:
     attributes: Dict[str, Any] = field(default_factory=dict)
 
 @dataclass
-class Variable(Node):
+class VariableNode(Node):
     """
-    A specific type of Node that represents a random variable 
-    in a probabilistic model.
+    A Variable type Node.
+    Has an associated GRAIL Variable
     """
+    variable: Variable
     distribution_name: Optional[str] = None
     distribution_params: Dict[str, Any] = field(default_factory=dict)
-    observed_value: Optional[Any] = None
+    observations: Optional[Any] = None
     is_observed: bool = False

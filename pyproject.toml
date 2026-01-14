@@ -7,7 +7,7 @@ name = "grail"
 version = "0.1.0"
 description = "Graph Reasoning from AI Learning"
 readme = "README.md"
-requires-python = ">=3.13,<3.14"
+requires-python = ">=3.12,<3.13"  # torch can't handle 3.13 as of Jan 2026
 authors = [
     { name = "GAIA Team" },
     { name = "Michael Walters", email = "mw@gaia-lab.de" },

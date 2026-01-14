@@ -1,31 +1,38 @@
 from dataclasses import dataclass, field
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, TypedDict, List
 from grail.graph.causal import CausalGraph
-from grail.graph.base import Variable
+from grail.graph.base import VariableNode
 from grail.logger import logger
 
-@dataclass
+
+# total = False means all fields are optional
+class FrameMetadata(TypedDict, total=False):
+    """Metadata structure for Frame objects."""
+    created_at: str
+    updated_at: str
+    description: str
+    version: str
+    tags: List[str]
+
+
+@dataclass(eq=False, repr=False)
 class Frame:
     """
-    A Frame is a staging area for a simulation.
-    It contains the causal graph (world model), data, and configuration.
+    Frames house a mixture of data types and are essentially the containers/bounding-boxes on a world model
     """
     name: str
     graph: CausalGraph = field(default_factory=CausalGraph)
-    metadata: Dict[str, Any] = field(default_factory=dict)
-    
-    # Simulation parameters could be stored here
-    sim_config: Dict[str, Any] = field(default_factory=dict)
+    metadata: FrameMetadata = field(default_factory=dict)
 
-    def add_variable(self, name: str, dist: str, params: Dict[str, Any], observed: Optional[Any] = None) -> str:
+    def add_variable(self, name: str, dist: str, params: Dict[str, Any], observations: Optional[Any] = None) -> str:
         """Helper to add a variable to the frame's graph."""
         logger.debug(f"Adding variable '{name}' to Frame '{self.name}'. Distribution: {dist}")
-        var = Variable(
+        var = VariableNode(
             name=name,
             distribution_name=dist,
             distribution_params=params,
-            observed_value=observed,
-            is_observed=(observed is not None)
+            observations=observations,
+            is_observed=(observations is not None)
         )
         self.graph.add_node(var)
         return var.id

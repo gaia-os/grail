@@ -1,6 +1,6 @@
 import networkx as nx
 from typing import List, Optional, Union, Dict, Any
-from grail.graph.base import Node, Variable, Edge
+from grail.graph.base import Node, VariableNode, Edge
 
 class CausalGraph:
     """
@@ -45,12 +45,12 @@ class CausalGraph:
         child_ids = self._graph.successors(node_id)
         return [self.get_node(cid) for cid in child_ids]
 
-    def get_variables(self) -> List[Variable]:
-        """Returns all nodes that are of type Variable."""
+    def get_variables(self) -> List[VariableNode]:
+        """Returns all nodes that are of type VariableNode."""
         vars = []
         for _, data in self._graph.nodes(data=True):
             node = data.get('data')
-            if isinstance(node, Variable):
+            if isinstance(node, VariableNode):
                 vars.append(node)
         return vars
     
