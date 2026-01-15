@@ -1,8 +1,10 @@
 import pickle
 from typing import Dict, Optional
 from pathlib import Path
-from grail.builder.frame import Frame
+
 from grail.logger import logger
+from .frame import Frame
+
 
 class Builder:
     """
