@@ -1,3 +1,5 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
@@ -205,3 +207,14 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+#==========================
+# PROJECT
+#==========================
+# Tmp files and scratches
+tmp/
+*.tmp
+tmp*
+scratch*.md
+scratch*.txt
+scratch*.py
