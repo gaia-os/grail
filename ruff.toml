@@ -1,0 +1,24 @@
+#
+# Ruff config
+#
+line-length = 120
+
+[lint]
+extend-select = [
+    "E501", # line too long
+    "I",    # isort - import sorting
+    "F401", # unused imports
+    "F403", # star imports
+    "F405", # name may be undefined due to star import
+]
+extend-ignore = []
+
+[lint.isort]
+# Import sorting configuration
+combine-as-imports = true
+force-sort-within-sections = true
+known-first-party = ["grail"]
+split-on-trailing-comma = true
+
+[format]
+quote-style = "preserve"

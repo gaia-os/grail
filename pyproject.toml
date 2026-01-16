@@ -45,10 +45,3 @@ python-preference = "managed"
 
 [tool.hatch.metadata]
 allow-direct-references = true
-
-[tool.ruff]
-line-length = 100
-src = ["src"]
-
-[tool.black]
-line-length = 100

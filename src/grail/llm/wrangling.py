@@ -108,8 +108,8 @@ class RewrittenSummary(BaseModel):
     summary: str = Field(
         ...,
         description="This is a new, denser summary which covers every entity and detail from the previous "
-                    f"summary plus the new Desired Entities. It should be between {MIN_SUMMARY_TOKENS}-{MAX_SUMMARY_TOKENS} "
-                    f"words (tokens), and should be easily understood without the source Document",
+                    f"summary plus the new Desired Entities. It should be between {MIN_SUMMARY_TOKENS}-"
+                    f"{MAX_SUMMARY_TOKENS} words (tokens), and should be easily understood without the source Document",
     )
     absent: list[str] = Field(
         ...,
