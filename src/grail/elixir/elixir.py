@@ -101,14 +101,14 @@ class Elixir:
             try:
                 py_content = json.loads(content)
                 code = py_content['code']
-            except Exception as e2:
+            except Exception:
                 # Sometimes the 'content' key is empty. Not sure why this happens.
                 # Or 'code' is not a key
                 try:
                     # From gpt observations, it looks like the code can be located/parsed here
                     content = returned_message['tool_calls'][0]['function']['arguments']
                     code = json.loads(content)['code']
-                except Exception as e3:
+                except Exception:
                     # Okay, just convert the message object into a string. Somewhere it should contain the function.
                     # information
                     info = json.dumps(returned_message)

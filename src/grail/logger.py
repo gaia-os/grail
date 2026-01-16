@@ -2,6 +2,7 @@
 Call this before other scripts to use the grail logger
 """
 import os
+from typing import Optional
 
 from grail.settings import LOG_PATH
 
@@ -61,9 +62,6 @@ def get_logger():
         return reset_logger()
 
     return _logger
-
-
-from typing import Optional
 
 
 def log_to_file(log_path: Optional[str] = None, level: int = INFO):

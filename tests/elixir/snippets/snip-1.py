@@ -25,12 +25,12 @@ def test_base_code_val_imports():
     _ = ElixirValidator.base_code_validator(good_import)
 
     # Bad import
-    with pytest.raises(ElixirException, match=r".*Import 'os' is not allowed.*") as einfo:
+    with pytest.raises(ElixirException, match=r".*Import 'os' is not allowed.*"):
         _ = ElixirValidator.base_code_validator(bad_import)
 
 
 def test_base_code_val_methods():
-    with pytest.raises(ElixirException, match=r".*Usage of 'eval' is not allowed.*") as einfo:
+    with pytest.raises(ElixirException, match=r".*Usage of 'eval' is not allowed.*"):
         _ = ElixirValidator.base_code_validator(bad_method)
 
     return

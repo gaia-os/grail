@@ -1,7 +1,6 @@
 import json
 import os
 
-from google import genai
 import instructor
 from grail.settings import PROJECT_ROOT
 

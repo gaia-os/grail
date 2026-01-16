@@ -1,5 +1,4 @@
 import pytest
-import ast
 from pydantic import ValidationError
 from grail.elixir import ElixirValidator, ElixirException
 from grail.elixir.validator import ElixirInputVar, ElixirOutputVar, GREEN_IMPORTS, INSECURE_METHODS
