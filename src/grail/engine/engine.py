@@ -1,12 +1,12 @@
-from typing import Callable, Dict, Any, List
+from typing import Any, Callable, Dict
 
 import pyro
 import torch
 
 from grail.builder.frame import Frame
-from grail.stats.distributions import DistributionFactory
 from grail.graph.base import VariableNode
 from grail.logger import logger
+from grail.stats.distributions import DistributionFactory
 
 
 class Engine:

@@ -1,8 +1,9 @@
-from typing import Any, Dict, Optional
-from dataclasses import dataclass, field
 import uuid
+from dataclasses import dataclass, field
+from typing import Any, Dict, Optional
 
-from grail.stats.variable import Variable
+from grail.builder import Variable
+
 
 @dataclass
 class Node:
@@ -10,9 +11,10 @@ class Node:
     name: str
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
     attributes: Dict[str, Any] = field(default_factory=dict)
-    
+
     def __hash__(self):
         return hash(self.id)
+
 
 @dataclass
 class Edge:
@@ -20,6 +22,7 @@ class Edge:
     source: str  # Node ID
     target: str  # Node ID
     attributes: Dict[str, Any] = field(default_factory=dict)
+
 
 @dataclass
 class VariableNode(Node):

@@ -1,10 +1,11 @@
 from dataclasses import dataclass, field
-from typing import Dict, Any, Optional, TypedDict, List
+from typing import Any, Dict, List, Optional, TypedDict
 
-from grail.graph.causal import CausalGraph
+from grail.builder import Variable
+
 from grail.graph.base import VariableNode
+from grail.graph.causal import CausalGraph
 from grail.logger import logger
-from grail.stats.variable import Variable
 
 
 # total = False means all fields are optional

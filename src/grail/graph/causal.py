@@ -1,12 +1,16 @@
+from typing import List, Optional, Union
+
 import networkx as nx
-from typing import List, Optional, Union, Dict, Any
-from grail.graph.base import Node, VariableNode, Edge
+
+from grail.graph.base import Node, VariableNode
+
 
 class CausalGraph:
     """
     A wrapper around networkx.DiGraph specialized for Causal Inference.
     Represents direct causal relationships between variables.
     """
+
     def __init__(self):
         self._graph = nx.DiGraph()
 
@@ -26,7 +30,7 @@ class CausalGraph:
         """
         u = source.id if isinstance(source, Node) else source
         v = target.id if isinstance(target, Node) else target
-        
+
         self._graph.add_edge(u, v, **attrs)
 
     def get_node(self, node_id: str) -> Optional[Node]:
@@ -53,7 +57,7 @@ class CausalGraph:
             if isinstance(node, VariableNode):
                 vars.append(node)
         return vars
-    
+
     def topological_sort(self) -> List[str]:
         """Returns a list of node IDs in topological order."""
         return list(nx.topological_sort(self._graph))

@@ -18,6 +18,10 @@ dependencies = [
   "networkx>=3.6.1",
   # "pymc>=5.13",
   "pyro-ppl>=1.9.1",
+  "instructor>=1.14.3",
+  "nltk>=3.9.2",
+  "anthropic>=0.76.0",
+  "google-genai>=1.59.0",
 ]
 
 [project.optional-dependencies]

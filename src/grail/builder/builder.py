@@ -1,6 +1,6 @@
 import pickle
-from typing import Dict, Optional
 from pathlib import Path
+from typing import Optional
 
 from grail.logger import logger
 from .frame import Frame
@@ -11,6 +11,7 @@ class Builder:
     The Builder constructs and manages Frames.
     It handles initialization, composition, and persistence.
     """
+
     def __init__(self, workspace_path: Optional[str] = None):
         self.workspace_path = Path(workspace_path) if workspace_path else Path("./grail_workspace")
         self.workspace_path.mkdir(exist_ok=True, parents=True)
@@ -27,7 +28,7 @@ class Builder:
         """Saves a frame to disk."""
         if not filename:
             filename = f"{frame.name}.grail"
-        
+
         file_path = self.workspace_path / filename
         logger.info(f"Saving Frame '{frame.name}' to {file_path}")
         with open(file_path, "wb") as f:
@@ -40,6 +41,6 @@ class Builder:
         logger.info(f"Loading Frame from {file_path}")
         with open(file_path, "rb") as f:
             frame = pickle.load(f)
-        
+
         self.current_frame = frame
         return frame

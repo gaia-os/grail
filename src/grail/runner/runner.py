@@ -1,18 +1,20 @@
-from typing import Callable, Dict, Any, Optional
+from typing import Any, Callable, Dict, Optional
+
 import pyro
-from pyro.infer import SVI, Trace_ELBO, Predictive
-import torch
-from pyro.optim import Adam
+from pyro.infer import Predictive, SVI, Trace_ELBO
+from pyro.optim.optim import ClippedAdam
+from pyro.infer.autoguide import AutoDiagonalNormal
+
 from grail.logger import logger
 
 class Runner:
     """
     Executes simulations and inference on GRAIL models.
     """
-    
+
     def __init__(self, model: Callable):
         self.model = model
-        self.guide = None # AutoGuide will be generated if not provided
+        self.guide = None  # AutoGuide will be generated if not provided
         logger.info("Runner initialized.")
 
     def simulate(self, num_samples: int = 1, data: Optional[Dict[str, Any]] = None):
@@ -30,11 +32,11 @@ class Runner:
         """
         logger.info(f"Starting SVI training for {n_steps} steps, lr={learning_rate}")
         pyro.clear_param_store()
-        
+
         # Simple AutoGuide
-        self.guide = pyro.infer.autoguide.AutoDiagonalNormal(self.model)
-        
-        optimizer = Adam({"lr": learning_rate})
+        self.guide = AutoDiagonalNormal(self.model)
+
+        optimizer = ClippedAdam({"lr": learning_rate})
         svi = SVI(self.model, self.guide, optimizer, loss=Trace_ELBO())
 
         loss_history = []
@@ -43,7 +45,7 @@ class Runner:
             loss_history.append(loss)
             if i % 100 == 0:
                 logger.info(f"[Step {i}] Loss: {loss}")
-                
+
         return loss_history
 
     def predict(self, num_samples: int = 100, data: Optional[Dict[str, Any]] = None):
@@ -52,11 +54,11 @@ class Runner:
         """
         if self.guide is None:
             raise ValueError("Model has not been trained (no guide found). Run train_svi first.")
-        
+
         logger.info(f"Generating posterior predictions with {num_samples} samples.")
         predictive = Predictive(self.model, guide=self.guide, num_samples=num_samples)
         return predictive(data)
-    
+
     def do_operation(self, interventions: Dict[str, Any], num_samples: int = 1):
         """
         Performs a 'do' operation (intervention) on the model.
