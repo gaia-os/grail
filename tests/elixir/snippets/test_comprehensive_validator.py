@@ -3,9 +3,6 @@ from pydantic import ValidationError
 from grail.elixir import ElixirValidator, ElixirException
 from grail.elixir.validator import ElixirInputVar, ElixirOutputVar, GREEN_IMPORTS, INSECURE_METHODS
 
-# Helper to suppress abstract class instantiation issues if any,
-# although ElixirValidator is a Pydantic model so we usually subclass it.
-
 # --- Scenarios for Base Code Validator ---
 
 def test_allowed_imports_comprehensive():
