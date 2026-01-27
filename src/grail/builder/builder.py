@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Optional
 
 from grail.logger import logger
+from grail.settings import PROJECT_ROOT
 from .frame import Frame
 
 

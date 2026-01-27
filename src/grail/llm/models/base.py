@@ -40,6 +40,7 @@ class LLMBaseClass(ABC):
     aliases = []
 
     system_roles = {
+        "grail": roles.GRAIL,
         "elixir": roles.ELIXIR,
         "elixir_critic": roles.ELIXIR_CRITIC,
     }
