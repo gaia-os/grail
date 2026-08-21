@@ -1,3 +1,7 @@
+[build-system]
+requires = ["hatchling>=1.25.0"]
+build-backend = "hatchling.build"
+
 [project]
 name = "grail"
 version = "0.1.0"
@@ -41,7 +45,3 @@ python-preference = "managed"
 
 [tool.hatch.metadata]
 allow-direct-references = true
-
-[build-system]
-requires = ["hatchling>=1.25.0"]
-build-backend = "hatchling.build"
