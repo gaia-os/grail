@@ -68,8 +68,6 @@ In between the Builder and the Runner.
 The Engine **initializes** and strings together the different pieces for the simulation run,
 and sends the prepared package into the Runner.
 
-This is where a user would call the 
-
 ### The Builder
 
 - This is where new models are built
