@@ -28,12 +28,12 @@ class Elixir:
     def __init__(
         self,
         llm: LLMBaseClass,
-        critic: ElixirCritic | None = None
+        critic: ElixirCritic
     ):
         self.llm: LLMBaseClass = llm
-        self.critic: ElixirCritic | None = critic
+        self.critic: ElixirCritic = critic
         self.stage = None
-        # Note that validated does not me Critic approved, just that it is "clean"
+        # Note that validated does not mean Critic approved, just that it is "clean"
         self.validated = False
 
     def clear(self) -> None:
@@ -120,6 +120,7 @@ class Elixir:
         return str(response.model_dump()["code"]), True, None
 
     def _get_function_gen_prompt(self, validator: Type[ElixirValidator]) -> str:
+        """Prompt for generating python functions"""
         args = ""
         for arg in validator.required_args:
             args += f"\n\t{arg}"
@@ -208,6 +209,7 @@ class Elixir:
         <EVALUATION>
         {evaluation}
         </EVALUATION>
+        ---
         """
         return prompt
 
@@ -247,6 +249,7 @@ class Elixir:
         <DIRECTIVE>
         {directive}
         </DIRECTIVE>
+        ---
         """
 
         # We'll start the clock here
@@ -254,7 +257,7 @@ class Elixir:
         remaining_budget = loop_budget
 
         # We circumnavigate the self.generate_function method, because we want to capture and continue with whatever
-        # the produce code attempt is.
+        # the produced code attempt is.
         attempt, validated, error = self._call_llm(
             prompt, validator, actor_retries, actor_budget,
         )

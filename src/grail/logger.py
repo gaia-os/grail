@@ -4,7 +4,7 @@ Call this before other scripts to use the grail logger
 import os
 from typing import Optional
 
-from grail.settings import LOG_PATH
+from grail.settings import LOG_PATH, DEBUGGING
 
 # From logging module
 CRITICAL = 50
@@ -16,6 +16,8 @@ INFO = 20
 DEBUG = 10
 NOTSET = 0
 
+DEFAULT = DEBUG if DEBUGGING else INFO
+
 _LOG_PATH = LOG_PATH
 
 
@@ -25,7 +27,7 @@ def validate_log_path(log_path: str):
         raise FileNotFoundError(f"Parent directory for log path '{log_path}' does not exist.")
 
 
-def reset_logger(level=INFO):
+def reset_logger(level=DEFAULT):
     """Re-initialize grail logger with one of the above options"""
     import logging
     # Create a custom logger
@@ -64,7 +66,7 @@ def get_logger():
     return _logger
 
 
-def log_to_file(log_path: Optional[str] = None, level: int = INFO):
+def log_to_file(log_path: Optional[str] = None, level: int = DEFAULT):
     """
     Specify a log file to write to, or initialize the default.
     Also specify a log level

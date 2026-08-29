@@ -32,6 +32,12 @@ dev = [
   "pytest>=8.3",
 ]
 
+all = [
+  "ruff>=0.6",
+  "black>=24.8",
+  "pytest>=8.3",
+]
+
 [tool.hatch.build.targets.wheel]
 packages = [
     #  { include = "grail", from = "src" }

@@ -75,7 +75,7 @@ and sends the prepared package into the Runner.
 
 #### Frames
 
-Frames (defined above) are build in the Builder.
+Frames (defined above) are built in the Builder.
 Users(/LLM) should initialize a Frame, and then sequentially add elements to the Frame.
 This is the world model construction/initialization.
 
@@ -112,3 +112,41 @@ Where constructed models are stored for retrieval.
 
 Data attached to a node
 
+### Elixir
+
+**Elixir** is a language-model-driven code generation system for constructing statistical operation functions.
+
+Given a Frame's variable structure and dependency graph, Elixir uses an actor-critic loop to generate Python implementations of various statistical operations. The Interpreter specifies which variables are of interest and what operations are needed; Elixir then generates, validates (via critic feedback), and compiles the functions that Frames will use during inference and simulation.
+
+#### Standard Statistical Operations
+
+Elixir can generate implementations for the following operations:
+
+1. **Prior Predictive** - Sample from the prior to validate prior assumptions before observing data
+2. **Likelihood** - Evaluate how well observed data fits under current parameters
+3. **Posterior Inference** - Update beliefs given data (Bayesian inference, etc.)
+4. **Posterior Predictive** - Predict future observations using updated beliefs
+5. **Sensitivity Analysis** - Assess robustness of inferences to perturbations
+6. **Interventional** - Compute causal effects via interventions (do-calculus)
+7. **Counterfactual** - Analyze "what would have happened" under alternative scenarios
+
+#### Initial Scope
+
+For the initial implementation, Elixir will focus on three core operations:
+
+- **Prior Predictive**: Validation of domain assumptions
+- **Posterior Inference**: Learning from observed data
+- **Posterior Predictive**: Running simulations and forecasts
+
+Each generated operation accepts integer parameters (e.g., `n_samples`, `n_steps`) to control simulation granularity, which the Engine and Runner use during execution.
+
+---
+
+## Development Map
+
+1. Building world models models with Elixir
+   - Upgrade our existing foundation so the LM can construct viable world models
+2. Define a Frame, and how it can manage WMs
+3. Work on the Runner and Engine through a toy example
+4. Construct the Builder to CRUD frames
+5. ....
