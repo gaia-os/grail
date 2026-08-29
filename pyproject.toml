@@ -16,26 +16,29 @@ dependencies = [
   "numpy>=2.0",
   "pandas>=2.2",
   "networkx>=3.6.1",
+  "pyyaml>=6.0",
   # "pymc>=5.13",
   "pyro-ppl>=1.9.1",
-  "instructor>=1.14.3",
   "nltk>=3.9.2",
-  "anthropic>=0.76.0",
-  "google-genai>=1.59.0",
+  "pydantic>=2.13",
+  "sqlmodel>=0.0.42",
+  "instructor>=1.16.0",
+  "anthropic>=1.2.0",
+  "google-genai>=2.20.0",
 ]
 
 [project.optional-dependencies]
 # Extra groups that can be installed with: uv pip install .[viz] (or hatch -e ...)
 dev = [
-  "ruff>=0.6",
-  "black>=24.8",
-  "pytest>=8.3",
+  "ruff>=0.14",
+  "black>=25.12",
+  "pytest>=9.0",
 ]
 
 all = [
-  "ruff>=0.6",
-  "black>=24.8",
-  "pytest>=8.3",
+  "ruff>=0.14",
+  "black>=25.12",
+  "pytest>=9.0",
 ]
 
 [tool.hatch.build.targets.wheel]
