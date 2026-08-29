@@ -22,3 +22,8 @@ and setting aside agentic-orchestrator-type processes for now.
 
 We are also setting aside model management and storing for now, leaving that to the external application.
 However, we will provide the necessary I/O save/loading utils.
+
+## Frames
+
+See [`docs/modules/frames.md`](docs/modules/frames.md) for information on what Frames are and how
+to build them for your application.
