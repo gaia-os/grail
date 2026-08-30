@@ -27,6 +27,7 @@ class FrameRepository:
         """Atomically write a Frame or FrameSpec and return its YAML path."""
         spec = source.to_spec() if isinstance(source, Frame) else source
         path = self._resolve_path(filename or f"{spec.name}.yaml")
+        path.parent.mkdir(parents=True, exist_ok=True)
         logger.debug(f"Saving Frame spec '{spec.name}' to '{path}'")
         payload = yaml.safe_dump(
             spec.model_dump(mode="json", exclude_none=True),

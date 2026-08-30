@@ -47,6 +47,18 @@ def test_yaml_spec_compiles_with_declarations_in_any_order(tmp_path: Path):
     assert samples["Outcome"].shape == (8,)
 
 
+def test_repository_supports_nested_yaml_paths(tmp_path: Path):
+    repository = FrameRepository(tmp_path)
+    frame = Frame("health-model")
+    frame.add_variable("Cause", "Bernoulli", {"probs": 0.5})
+
+    path = repository.save(frame, "examples/health_model.yaml")
+
+    assert path == tmp_path / "examples" / "health_model.yaml"
+    assert path.exists()
+    assert repository.load_spec("examples/health_model.yaml").name == "health-model"
+
+
 def test_frame_spec_rejects_missing_dependencies_and_cycles():
     base = {
         "version": 1,

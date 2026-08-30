@@ -47,7 +47,7 @@ An application can also supply a different root directory to `FrameRepository`. 
 
 ## Anatomy of a Frame YAML file
 
-The following is the complete minimal example from [`../../data/frames/health_model.yaml`](../../data/frames/health_model.yaml):
+The following is the complete minimal example from [`../../data/frames/examples/health_model.yaml`](../../data/frames/examples/health_model.yaml):
 
 ```yaml
 version: 1

@@ -1,5 +1,5 @@
 import torch
-from grail.builder import Builder
+from grail.frame.builder import Builder
 from grail.engine import Engine
 from grail.runner import Runner
 
