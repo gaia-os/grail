@@ -219,6 +219,10 @@ __marimo__/
 #==========================
 # PROJECT
 #==========================
+# DB things
+*.sqlite3
+*.sqlite3-*
+
 # Tmp files and scratches
 tmp/
 *.tmp
