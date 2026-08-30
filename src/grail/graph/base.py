@@ -1,8 +1,6 @@
-import uuid
 from dataclasses import dataclass, field
 from typing import Any, Dict, Optional
-
-from grail.builder import Variable
+import uuid
 
 
 @dataclass
@@ -30,7 +28,7 @@ class VariableNode(Node):
     A Variable type Node.
     Has an associated GRAIL Variable
     """
-    variable: Variable
+    variable: Any = field(kw_only=True)
 
     @property
     def is_observed(self) -> bool:

@@ -34,6 +34,9 @@ while not (PROJECT_ROOT / 'pyproject.toml').exists():
     PROJECT_ROOT = PROJECT_ROOT.parent
 
 TESTS_OUT = os.path.join(PROJECT_ROOT, "tests", "tmp")
+DATA_DIR = PROJECT_ROOT / "data"
+FRAME_SPECS_DIR = DATA_DIR / "frames"
+FRAME_REGISTRY_DB_PATH = DATA_DIR / "grail.sqlite3"
 
 # Log filename will be based on the current time
 _default_name = f"{time.strftime('%Y-%m-%d-%H%M%S')}.log"
@@ -44,3 +47,10 @@ LOG_PATH = os.path.join(PROJECT_ROOT, "logs", _default_name)
 SYSTEM_USER = os.getenv("USER", "unknown")
 
 DEBUGGING = env_to_bool(os.environ.get("GRAIL_DEBUG", False))
+
+# <><><  Versions  ><><>
+FRAME_VERSION = 1
+FRAME_SPEC_VERSION = 1
+BUILDER_VERSION = 1
+ENGINE_VERSION = 1
+RUNNER_VERSION = 1

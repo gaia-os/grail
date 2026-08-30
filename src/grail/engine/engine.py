@@ -1,9 +1,9 @@
-from typing import Any, Callable, Dict
+from typing import Any, Callable, Dict, Optional
 
 import pyro
 import torch
 
-from grail.builder.frame import Frame
+from grail.frame import Frame
 from grail.graph.base import VariableNode
 from grail.logger import logger
 from grail.stats.distributions import DistributionFactory
@@ -27,7 +27,7 @@ class Engine:
         logger.debug(f"Topological order for execution: {topo_order}")
 
         # We need to capture the graph structure in the closure
-        def model(data: Dict[str, Any] = None):
+        def model(data: Optional[Dict[str, Any]] = None):
             if data is None:
                 data = {}
 
@@ -38,7 +38,6 @@ class Engine:
                 if not isinstance(node, VariableNode):
                     continue
 
-                parents = graph.get_parents(node_id)
                 resolved_params = node.get_distribution_params()
 
                 for param_name, param_val in resolved_params.items():
@@ -51,13 +50,13 @@ class Engine:
 
                 dist = DistributionFactory.get_distribution(distribution_name, resolved_params)
 
-                obs = None
-                if node.is_observed():
+                obs = data.get(node.name, data.get(node_id))
+                if obs is None and node.is_observed:
                     observations = node.get_observations()
                     if observations is not None:
                         obs = torch.tensor(observations)
-                    elif node_id in data:
-                        obs = torch.tensor(data[node_id])
+                if obs is not None and not isinstance(obs, torch.Tensor):
+                    obs = torch.tensor(obs)
 
                 val = pyro.sample(node.name, dist, obs=obs)
                 runtime_values[node_id] = val
