@@ -63,6 +63,10 @@ class Runner:
         """
         Performs a 'do' operation (intervention) on the model.
         interventions: Dict mapping variable names to their fixed values.
+
+        NOTE: Returned prediction does not "insert" the intervened values
+        into the traces, it will simply return a "natural" sample.
+        In other words, your intervened variables will still be sampled, and not return your interv. values.
         """
         logger.info(f"Performing do-operation with interventions: {interventions}")
         intervened_model = pyro.do(self.model, data=interventions)

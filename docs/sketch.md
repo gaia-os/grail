@@ -68,16 +68,15 @@ In between the Builder and the Runner.
 The Engine **initializes** and strings together the different pieces for the simulation run,
 and sends the prepared package into the Runner.
 
+### Frames
+
+Users(/LLM) should initialize a Frame, and then sequentially add elements to the Frame.
+This is the world model construction/initialization.
+
 ### The Builder
 
 - This is where new models are built
 - It also **composes** such models from stored models in the library
-
-#### Frames
-
-Frames (defined above) are built in the Builder.
-Users(/LLM) should initialize a Frame, and then sequentially add elements to the Frame.
-This is the world model construction/initialization.
 
 #### GRAIL YAML config spec
 
