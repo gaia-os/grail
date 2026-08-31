@@ -1,0 +1,11 @@
+{
+  "frame": "health-model",
+  "batches": [
+    {
+      "id": "health-model-exercise-001",
+      "variable": "Exercise",
+      "values": [1, 1, 1, 1, 1, 1, 1, 0],
+      "source": "example:health-model"
+    }
+  ]
+}

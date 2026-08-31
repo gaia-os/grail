@@ -31,10 +31,13 @@ You can pass observed data as a mapping keyed by variable name.
 - Otherwise, values are sampled from prior distributions.
 
 Small fixed observations can live in YAML, but changing datasets are usually better passed at run time.
+Passing `data` to the callable is temporary conditioning; it does not retain an
+observation history or calculate a posterior. Persist evidence through
+`Frame.record_observations()` and use an inference strategy for posterior updates.
+Engine remains distribution- and inference-method-agnostic.
 
 ## Limits
 
 - Only supported built-in distribution codes can run.
 - Graph must be acyclic (DAG).
 - Engine runs in-process with the current Pyro runtime state.
-

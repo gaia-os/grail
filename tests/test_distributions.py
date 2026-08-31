@@ -38,6 +38,14 @@ def test_factory_creates_binomial_distribution_by_code():
     assert float(binomial.mean) == pytest.approx(3.0)
 
 
+def test_factory_creates_beta_distribution_by_code():
+    beta = DistributionFactory.create("beta", {"alpha": 2.0, "beta": 3.0})
+
+    assert float(beta.concentration1) == pytest.approx(2.0)
+    assert float(beta.concentration0) == pytest.approx(3.0)
+    assert float(beta.mean) == pytest.approx(0.4)
+
+
 def test_factory_rejects_unknown_binomial_param_names():
     with pytest.raises(ValueError, match="does not accept params"):
         DistributionFactory.create("binomial", {"n": 10, "rate": 0.3})
@@ -57,5 +65,3 @@ def test_factory_creates_constant_distribution_by_code():
 def test_factory_constant_requires_value_param():
     with pytest.raises(ValueError, match="requires param: value"):
         DistributionFactory.create("constant", {})
-
-

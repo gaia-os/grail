@@ -2,18 +2,21 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
+from hashlib import sha256
+import json
+from pathlib import Path
 import re
 from typing import Any
 
+from grail.frame.spec import DependencySpec, FrameMetadata, FrameSpec, VariableSpec
+from grail.frame.state import FrameState, FrameStateStore, PosteriorState, VariableState
+from grail.frame.variable import Variable
 from grail.graph.base import VariableNode
 from grail.graph.causal import CausalGraph
 from grail.logger import logger
 from grail.settings import FRAME_VERSION
-
-from grail.frame.spec import DependencySpec, FrameMetadata, FrameSpec, VariableSpec
-from grail.frame.variable import Variable
-
 
 # Variable names must start with a letter, use only letters/digits/underscores,
 # and be at most 50 characters long.
@@ -34,6 +37,7 @@ class Frame:
     graph: CausalGraph = field(default_factory=CausalGraph)
     metadata: FrameMetadata | dict[str, Any] = field(default_factory=FrameMetadata)
     version: int = FRAME_VERSION
+    _state_store: FrameStateStore | None = field(default=None, init=False, repr=False, compare=False)
 
     def add_variable(
         self,
@@ -111,6 +115,185 @@ class Frame:
     def get_variables(self) -> list[Variable]:
         """Return all registered Frame variables."""
         return [node.variable for node in self.graph.get_variables()]
+
+    @property
+    def definition_hash(self) -> str:
+        """Return a stable hash of this Frame's yaml definition."""
+        payload = self.to_spec().model_dump_json(exclude_none=False)
+        return sha256(payload.encode("utf-8")).hexdigest()
+
+    def attach_state_store(self, store: FrameStateStore) -> None:
+        """
+        Attach persistent runtime state and register any YAML baseline evidence.
+
+        Existing ``Variable.observations`` values originate from a Frame spec. They
+        are preserved for model compatibility and copied once into the append-only
+        ledger using a definition-scoped deterministic batch ID.
+        """
+        self._state_store = store
+        for variable in self.get_variables():
+            if variable.observations is not None:
+                store.append_observations(
+                    self.name,
+                    self.definition_hash,
+                    variable.name,
+                    variable.observations,
+                    batch_id=f"spec-{self.definition_hash}-{variable.name}",
+                    source="frame-spec",
+                )
+
+    def record_observations(
+        self,
+        variable_name_or_id: str,
+        values: Any,
+        *,
+        batch_id: str | None = None,
+        source: str = "runtime",
+    ) -> str:
+        """
+        Append evidence for a variable and return its durable batch ID.
+
+        Runtime evidence is not written into the Frame YAML and does not overwrite
+        previous batches. Reusing a batch ID with identical contents is safe for
+        retrying an upload; different contents are rejected.
+        """
+        variable = self.get_variable(variable_name_or_id)
+        store = self._require_state_store()
+        batch = store.append_observations(
+            self.name,
+            self.definition_hash,
+            variable.name,
+            values,
+            batch_id=batch_id,
+            source=source,
+        )
+        return batch.id
+
+    def load_observations(self, path: Path | str) -> list[str]:
+        """
+        Load and append the batches declared by a JSON observation file.
+
+        The portable file format is ``{"frame": "...", "batches": [{"id":
+        "...", "variable": "...", "values": [...], "source": "..."}]}``.
+        A file is merely a convenient input transport; values are retained in the
+        SQLite graph-variable observation ledger after this method succeeds.
+        """
+        observation_path = Path(path).expanduser().resolve()
+        try:
+            payload = json.loads(observation_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as error:
+            raise ValueError(f"invalid observation JSON in '{observation_path}'") from error
+        if not isinstance(payload, Mapping):
+            raise TypeError("observation JSON must contain an object at its root")
+        declared_frame = payload.get("frame")
+        if declared_frame is not None and declared_frame != self.name:
+            raise ValueError(
+                f"observation file is for Frame '{declared_frame}', not '{self.name}'"
+            )
+        batches = payload.get("batches")
+        if not isinstance(batches, list) or not batches:
+            raise ValueError("observation JSON must contain a non-empty 'batches' list")
+
+        batch_ids = []
+        for entry in batches:
+            if not isinstance(entry, Mapping):
+                raise TypeError("every observation batch must be an object")
+            unknown_fields = set(entry) - {"id", "variable", "values", "source"}
+            if unknown_fields:
+                raise ValueError(
+                    f"observation batch has unsupported fields: {sorted(unknown_fields)}"
+                )
+            if "variable" not in entry or "values" not in entry:
+                raise ValueError("every observation batch requires 'variable' and 'values'")
+            batch_ids.append(
+                self.record_observations(
+                    entry["variable"],
+                    entry["values"],
+                    batch_id=entry.get("id"),
+                    source=entry.get("source", f"file:{observation_path.name}"),
+                )
+            )
+        return batch_ids
+
+    def get_observation_batches(self, variable_name_or_id: str | None = None) -> list[Any]:
+        """Return append-only evidence history, optionally for one variable."""
+        variable_name = (
+            self.get_variable(variable_name_or_id).name if variable_name_or_id is not None else None
+        )
+        return self._require_state_store().get_observation_batches(
+            self.name, self.definition_hash, variable_name=variable_name
+        )
+
+    def get_posterior(
+        self, variable_name_or_id: str, *, strategy: str | None = None
+    ) -> PosteriorState | None:
+        """Return a retained posterior for a variable, if inference has produced one.
+
+        Args:
+            strategy: Selects the inference method that produced the snapshot.
+                ``None`` (the default) returns the most recently updated posterior
+                across all strategies. ``"beta-bernoulli-exact"`` selects the
+                bundled exact conjugate updater. Custom strategies use the stable
+                value of their :attr:`InferenceStrategy.name` attribute.
+        """
+        variable = self.get_variable(variable_name_or_id)
+        return self._require_state_store().get_posterior(
+            self.name,
+            self.definition_hash,
+            variable_name=variable.name,
+            strategy=strategy,
+        )
+
+    def save_posterior(
+        self,
+        variable_name_or_id: str,
+        *,
+        strategy: str,
+        distribution: str,
+        prior: Mapping[str, Any],
+        params: Mapping[str, Any],
+        metadata: Mapping[str, Any],
+    ) -> PosteriorState:
+        """Persist an inference result without altering this Frame's declared prior."""
+        variable = self.get_variable(variable_name_or_id)
+        return self._require_state_store().save_posterior(
+            self.name,
+            self.definition_hash,
+            variable_name=variable.name,
+            strategy=strategy,
+            distribution=distribution,
+            prior=prior,
+            params=params,
+            metadata=metadata,
+        )
+
+    def inspect_state(self) -> FrameState:
+        """Return the current prior, evidence history, and latest posterior by variable."""
+        store = self._require_state_store()
+        posterior_by_variable = store.get_posteriors(self.name, self.definition_hash)
+        variables = {}
+        for variable in self.get_variables():
+            distribution = variable.get_distribution_name()
+            if distribution is None:
+                raise ValueError(f"Variable '{variable.name}' is missing a distribution specification")
+            variables[variable.name] = VariableState(
+                name=variable.name,
+                prior={
+                    "distribution": distribution,
+                    "params": _restore_references(
+                        variable.get_distribution_params(), self._name_for_node_id
+                    ),
+                },
+                observation_batches=store.get_observation_batches(
+                    self.name, self.definition_hash, variable_name=variable.name
+                ),
+                posterior=posterior_by_variable.get(variable.name),
+            )
+        return FrameState(
+            frame_name=self.name,
+            definition_hash=self.definition_hash,
+            variables=variables,
+        )
 
     @classmethod
     def from_spec(cls, spec: FrameSpec) -> Frame:
@@ -200,7 +383,8 @@ class Frame:
             raise ValueError("variable name must be non-empty")
         if not VARIABLE_NAME_PATTERN.fullmatch(name):
             raise ValueError(
-                "variable name must start with a letter, be <= 50 chars, and contain only letters, digits, and underscores"
+                "variable name must start with a letter, be <= 50 chars, and contain only "
+                "letters, digits, and underscores"
             )
 
     def _name_for_node_id(self, node_id: str) -> str:
@@ -237,6 +421,14 @@ class Frame:
         if isinstance(node, VariableNode):
             return variable_or_id
         raise KeyError(f"Frame '{self.name}' has no variable with id '{variable_or_id}'")
+
+    def _require_state_store(self) -> FrameStateStore:
+        if self._state_store is None:
+            raise RuntimeError(
+                "Frame has no state store. Load it through FrameRepository or call "
+                "attach_state_store(FrameStateStore(...)) first."
+            )
+        return self._state_store
 
 def _resolve_references(value: Any, resolve_name: Any) -> Any:
     """Replace recursive declarative ``$ref`` mappings with runtime node IDs."""

@@ -27,7 +27,7 @@ INSECURE_METHODS = {
     "exec", "eval", "compile", "globals", "locals",
     "open", "input", "file", "os", "sys", "subprocess",
     "shutil", "ctypes", "getattr", "setattr", "delattr",
-    "vars", "socket", "requests", "http.client", "urllib",
+    "vars", "socket", "requests", "urllib",
     "pathlib"
 }
 

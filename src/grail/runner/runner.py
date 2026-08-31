@@ -1,23 +1,29 @@
-from typing import Any, Callable, Dict, Optional
+from collections.abc import Callable
+from typing import Any
 
 import pyro
-from pyro.infer import Predictive, SVI, Trace_ELBO
-from pyro.optim.optim import ClippedAdam
+from pyro.infer import SVI, Predictive, Trace_ELBO
 from pyro.infer.autoguide import AutoDiagonalNormal
+from pyro.optim.optim import ClippedAdam
 
+from grail.frame import Frame
+from grail.frame.state import PosteriorState
+from grail.inference import InferenceStrategy
 from grail.logger import logger
+
 
 class Runner:
     """
     Executes simulations and inference on GRAIL models.
     """
 
-    def __init__(self, model: Callable):
+    def __init__(self, model: Callable, *, frame: Frame | None = None):
         self.model = model
+        self.frame = frame
         self.guide = None  # AutoGuide will be generated if not provided
         logger.info("Runner initialized.")
 
-    def simulate(self, num_samples: int = 1, data: Optional[Dict[str, Any]] = None):
+    def simulate(self, num_samples: int = 1, data: dict[str, Any] | None = None):
         """
         Runs forward simulations (Prior Predictive) to generate data.
         """
@@ -25,7 +31,12 @@ class Runner:
         predictive = Predictive(self.model, num_samples=num_samples)
         return predictive(data)
 
-    def train_svi(self, data: Optional[Dict[str, Any]] = None, n_steps: int = 1000, learning_rate: float = 0.01):
+    def train_svi(
+        self,
+        data: dict[str, Any] | None = None,
+        n_steps: int = 1000,
+        learning_rate: float = 0.01,
+    ):
         """
         Fits the model to data using Stochastic Variational Inference (SVI).
         Uses an AutoDiagonalNormal guide by default.
@@ -48,7 +59,23 @@ class Runner:
 
         return loss_history
 
-    def predict(self, num_samples: int = 100, data: Optional[Dict[str, Any]] = None):
+    def infer(self, strategy: InferenceStrategy) -> dict[str, PosteriorState]:
+        """
+        Update the Frame using its saved observations.
+
+        This turns saved observations into a saved posterior: the model's latest
+        learned state. The strategy chooses how to perform that update. The
+        existing ``train_svi`` method is separate: it starts a fresh, temporary
+        analysis and does not save a resumable posterior on the Frame.
+        """
+        if self.frame is None:
+            raise ValueError(
+                "Runner.infer requires a Frame. Construct Runner(model, frame=frame)."
+            )
+        logger.info("Running inference strategy '%s' for Frame '%s'", strategy.name, self.frame.name)
+        return strategy.infer(self.frame)
+
+    def predict(self, num_samples: int = 100, data: dict[str, Any] | None = None):
         """
         Posterior Predictive sampling after training.
         """
@@ -59,7 +86,7 @@ class Runner:
         predictive = Predictive(self.model, guide=self.guide, num_samples=num_samples)
         return predictive(data)
 
-    def do_operation(self, interventions: Dict[str, Any], num_samples: int = 1):
+    def do_operation(self, interventions: dict[str, Any], num_samples: int = 1):
         """
         Performs a 'do' operation (intervention) on the model.
         interventions: Dict mapping variable names to their fixed values.

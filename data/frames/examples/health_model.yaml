@@ -6,10 +6,17 @@ metadata:
     - example
     - health
 variables:
+  - name: ExerciseRate
+    distribution: beta
+    params:
+      alpha: 1.0
+      beta: 1.0
+    description: Initial prior belief about the probability of exercising.
   - name: Exercise
     distribution: bernoulli
     params:
-      theta: 0.5
+      theta:
+        $ref: ExerciseRate
     description: Whether an individual exercises during the observation period.
   - name: Health
     distribution: normal
@@ -19,5 +26,7 @@ variables:
       scale: 0.1
     description: Health outcome conditioned on exercise.
 dependencies:
+  - source: ExerciseRate
+    target: Exercise
   - source: Exercise
     target: Health

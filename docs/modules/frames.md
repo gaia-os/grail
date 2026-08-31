@@ -8,7 +8,14 @@ It defines:
 - distributions (how each variable behaves),
 - dependencies (which variables influence others).
 
-Frames are meant to be durable and reviewable. In practice, YAML is your source of truth.
+Frames are meant to be durable and reviewable. In practice, YAML is your source of truth
+for the model structure and its **initial priors**. Runtime observations and posterior
+results are separate state; see [Observations and Posterior State](observations.md).
+
+## Frame history
+
+It's worth noting that the frame yaml definition is hashed into the graph to key its identity.
+Thus, if you make edits to a frame definition, you will spawn a fresh history for this new definition.
 
 ## Typical flow
 
@@ -64,10 +71,12 @@ dependencies:
 - `gamma`: `concentration`, `rate`
 - `lognormal`: `loc`, `scale`
 - `binomial`: `n`, `theta`
+- `beta`: `alpha`, `beta`
 - `constant`: `value`
 
 ## Practical notes
 
 - Keep large or changing datasets outside Frame YAML; pass them at run time.
-- Keep run outputs outside Frame YAML; a Frame should stay a model definition.
+- Keep observations and posterior outputs outside Frame YAML; a Frame should stay a
+  model definition. Use the Frame state store for durable evidence history.
 - Runtime node IDs are internal. Prefer variable names in app-facing code.

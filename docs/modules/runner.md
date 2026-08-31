@@ -9,9 +9,11 @@ Think of it as the runtime API for your analysis calls.
 - `simulate(num_samples, data=None)`
   - prior predictive sampling
 - `train_svi(data=None, n_steps, learning_rate)`
-  - fits a variational posterior
+  - fits an in-memory variational posterior from scratch
 - `predict(num_samples, data=None)`
   - posterior predictive sampling (after `train_svi()`)
+- `infer(strategy)`
+  - runs a Frame-aware strategy against persisted observation history and retains its posterior
 - `do_operation(interventions, num_samples)`
   - sampling under interventions
 
@@ -28,6 +30,8 @@ Think of it as the runtime API for your analysis calls.
 - A single Frame can be run many times with different data and run settings.
 - Keep run settings with saved results so runs are reproducible.
 - Treat Runner instances as short-lived per analysis task.
+- Construct `Runner(model, frame=frame)` when calling `infer()`. For the exact,
+  resumable Beta–Bernoulli strategy, see [Observations and Posterior State](observations.md).
 
 ## About interventions
 
@@ -35,4 +39,3 @@ Think of it as the runtime API for your analysis calls.
 
 Interpretation still depends on model quality: intervention results are only causal if
 your Frame's structure is a valid causal model.
-

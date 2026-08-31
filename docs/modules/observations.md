@@ -1,0 +1,107 @@
+# Observations and Posterior State
+
+A Frame YAML file is a **declarative model definition**. Distribution parameters in that
+file are initial priors, not values learned from later evidence. 
+Runtime evidence and posterior results are stored separately in SQLite.
+
+## `FrameState`
+
+`frame.inspect_state()` returns a `FrameState`: a diagnostic snapshot of the Frame's
+latest persisted runtime state. It includes the Frame definition hash and, for each
+variable:
+
+- **prior** — the current distribution configured on the runtime `Variable`;
+- **observations** — an append-only list of submitted batches;
+- **posterior** — the most recently saved inference result, or `null` if no inference
+  has been run for that variable.
+
+For a Frame loaded from YAML and not changed at runtime, `prior` matches the YAML
+configuration. 
+
+The state namespace includes a hash of the Frame definition.
+Thus, be careful when editing a frame YAML because you will create a fresh history.
+
+## Record observations
+
+Load Frames through `FrameRepository` to attach its SQLite state store. Observation
+values can come directly from application code or you can load an observation file.
+
+```python
+from grail.frame import FrameRepository
+
+repository = FrameRepository()
+frame = repository.load("examples/health_model.yaml")
+frame.record_observations(
+    "Exercise",
+    [1, 1, 1, 0],
+    batch_id="exercise-2026-09-01",
+    source="survey:2026-09-01",
+)
+```
+
+Each call creates an immutable batch in the `graph_observation_batches` and
+`graph_variable_observation_values` SQLite tables. Repeating an upload with the same
+`batch_id` and identical values is safe; attempting to reuse that ID for different data
+raises an error. The data is retained after recreating and reloading the Frame.
+
+`Engine.get_model()(data=...)` continues to support temporary, in-memory conditioning.
+That method does **not** persist its `data` mapping. Call `record_observations()` when
+an observation must be part of the Frame's durable evidence history.
+
+## Upload a JSON observation file
+
+`data/observations/examples/health_model.json` is an example transport file. Its
+contents are copied to SQLite when loaded; the file itself is not the authoritative
+history.
+
+```python
+from grail.frame import FrameRepository
+
+frame = FrameRepository().load("examples/health_model.yaml")
+frame.load_observations("data/observations/examples/health_model.json")
+```
+
+The JSON schema is deliberately small:
+
+```json
+{
+  "frame": "health-model",
+  "batches": [
+    {
+      "id": "unique-retry-safe-id",
+      "variable": "Exercise",
+      "values": [1, 0, 1],
+      "source": "optional-provenance"
+    }
+  ]
+}
+```
+
+---
+
+## Beta–Bernoulli Example
+
+The bundled `BetaBernoulliInference` recognizes a `beta` variable that parents one or
+more `bernoulli` variables through a `$ref` in the likelihood's `theta` parameter. It
+updates `alpha` and `beta` only for batch IDs not included in its saved posterior
+metadata. Therefore, a later invocation processes only new evidence.
+
+```python
+from grail.engine import Engine
+from grail.frame import FrameRepository
+from grail.inference import BetaBernoulliInference
+from grail.runner import Runner
+
+frame = FrameRepository().load("examples/health_model.yaml")
+frame.load_observations("data/observations/examples/health_model.json")
+runner = Runner(Engine(frame).get_model(), frame=frame)
+posteriors = runner.infer(BetaBernoulliInference())
+print(posteriors["ExerciseRate"].params)
+print(frame.inspect_state().format())
+```
+
+The health example begins with `ExerciseRate ~ Beta(1, 1)`. Its supplied observation
+batch has seven `1` values and one `0`, producing `Beta(8, 2)` and posterior mean `0.8`.
+The updater is an inference strategy, not Engine behavior. Other distributions and
+model families require their own compatible inference strategy; the existing SVI API
+remains in-memory and performs a full fresh fit.
