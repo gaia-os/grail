@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 from typing import Any, Dict
 
 import pyro.distributions as dist
@@ -6,49 +7,151 @@ import torch
 from grail.logger import logger
 
 
-class DistributionFactory:
+class Distribution(ABC):
     """
-    Maps string names and parameters to Pyro distributions.
-    Acts as a translation layer between GRAIL definitions and the PPL.
+    Base class for runtime distribution adapters.
+
+    Subclasses define `name`, `code`, and `allowed_param_names`, then implement
+    `_create()` to build the concrete `pyro.distributions` object from validated
+    params.
+
+    Callers should not instantiate distribution classes directly; use
+    `DistributionFactory.create(code, params)` so lookup and validation stay
+    consistent across the engine.
     """
+
+    name: str
+    code: str
+    allowed_param_names: set[str] = set()
 
     @staticmethod
-    def get_distribution(name: str, params: Dict[str, Any]):
-        """
-        Returns a Pyro distribution instance based on the name and parameters.
-        Adjusts parameter types (e.g., lists to tensors) as necessary.
-        """
-        name = name.lower()
-        logger.debug(f"Creating distribution: {name} with params: {params.keys()}")
+    def to_tensor(value: Any) -> Any:
+        if isinstance(value, (list, float, int)):
+            return torch.tensor(value, dtype=torch.float32)
+        return value
 
-        # Helper to ensure tensors
-        def to_tensor(val):
-            if isinstance(val, (list, float, int)):
-                return torch.tensor(val, dtype=torch.float32)
-            return val
+    def normalize_and_validate_params(self, params: Dict[str, Any]) -> Dict[str, Any]:
+        unknown = set(params) - self.allowed_param_names
+        if unknown:
+            accepted = ", ".join(sorted(self.allowed_param_names))
+            invalid = ", ".join(sorted(unknown))
+            raise ValueError(
+                f"Distribution '{self.code}' does not accept params: {invalid}. "
+                f"Accepted params: {accepted}"
+            )
+        return params
 
-        if name == "normal":
-            loc = to_tensor(params.get("loc", 0.0))
-            scale = to_tensor(params.get("scale", 1.0))
-            return dist.Normal(loc, scale)
+    def create(self, params: Dict[str, Any]):
+        """Create a concrete Pyro distribution from validated params."""
+        normalized = self.normalize_and_validate_params(params)
+        return self._create(normalized)
 
-        elif name == "bernoulli":
-            probs = to_tensor(params.get("probs", 0.5))
-            return dist.Bernoulli(probs) # noqa; for some reason ide doesn't detect bernoulli
+    @abstractmethod
+    def _create(self, params: Dict[str, Any]):
+        """Create a concrete Pyro distribution from canonicalized params."""
 
-        elif name == "uniform":
-            low = to_tensor(params.get("low", 0.0))
-            high = to_tensor(params.get("high", 1.0))
-            return dist.Uniform(low, high)
 
-        elif name == "exponential":
-            rate = to_tensor(params.get("rate", 1.0))
-            return dist.Exponential(rate) # noqa; for some reason ide doesn't detect exponential
+class NormalDistribution(Distribution):
+    name = "Normal"
+    code = "normal"
+    allowed_param_names = {"loc", "scale"}
 
-        elif name == "gamma":
-            concentration = to_tensor(params.get("concentration", 1.0))
-            rate = to_tensor(params.get("rate", 1.0))
-            return dist.Gamma(concentration, rate)
+    def _create(self, params: Dict[str, Any]):
+        loc = self.to_tensor(params.get("loc", 0.0))
+        scale = self.to_tensor(params.get("scale", 1.0))
+        return dist.Normal(loc, scale)
 
-        else:
-            raise ValueError(f"Unknown distribution: {name}")
+
+class BernoulliDistribution(Distribution):
+    name = "Bernoulli"
+    code = "bernoulli"
+    allowed_param_names = {"theta"}
+
+    def _create(self, params: Dict[str, Any]):
+        theta = params.get("theta", 0.5)
+        return dist.Bernoulli(self.to_tensor(theta))
+
+
+class UniformDistribution(Distribution):
+    name = "Uniform"
+    code = "uniform"
+    allowed_param_names = {"low", "high"}
+
+    def _create(self, params: Dict[str, Any]):
+        low = self.to_tensor(params.get("low", 0.0))
+        high = self.to_tensor(params.get("high", 1.0))
+        return dist.Uniform(low, high)
+
+
+class ExponentialDistribution(Distribution):
+    name = "Exponential"
+    code = "exponential"
+    allowed_param_names = {"rate"}
+
+    def _create(self, params: Dict[str, Any]):
+        rate = self.to_tensor(params.get("rate", 1.0))
+        return dist.Exponential(rate)
+
+
+class GammaDistribution(Distribution):
+    name = "Gamma"
+    code = "gamma"
+    allowed_param_names = {"concentration", "rate"}
+
+    def _create(self, params: Dict[str, Any]):
+        concentration = self.to_tensor(params.get("concentration", 1.0))
+        rate = self.to_tensor(params.get("rate", 1.0))
+        return dist.Gamma(concentration, rate)
+
+
+class LogNormalDistribution(Distribution):
+    name = "LogNormal"
+    code = "lognormal"
+    allowed_param_names = {"loc", "scale"}
+
+    def _create(self, params: Dict[str, Any]):
+        loc = self.to_tensor(params.get("loc", 0.0))
+        scale = self.to_tensor(params.get("scale", 1.0))
+        return dist.LogNormal(loc, scale)
+
+
+class BinomialDistribution(Distribution):
+    name = "Binomial"
+    code = "binomial"
+    allowed_param_names = {"n", "theta"}
+
+    def _create(self, params: Dict[str, Any]):
+        total_count = self.to_tensor(params.get("n", 1))
+        theta = self.to_tensor(params.get("theta", 0.5))
+        return dist.Binomial(total_count=total_count, probs=theta)
+
+#===============================================================================
+
+AVAILABLE_DISTRIBUTIONS = {
+    NormalDistribution.code: NormalDistribution,
+    BernoulliDistribution.code: BernoulliDistribution,
+    UniformDistribution.code: UniformDistribution,
+    ExponentialDistribution.code: ExponentialDistribution,
+    GammaDistribution.code: GammaDistribution,
+    LogNormalDistribution.code: LogNormalDistribution,
+    BinomialDistribution.code: BinomialDistribution,
+}
+
+
+class DistributionFactory:
+    """Resolves a distribution code to a Distribution constructor."""
+
+    @classmethod
+    def create(cls, code: str, params: Dict[str, Any]):
+        logger.debug(f"Creating distribution: {code} with params: {params.keys()}")
+        dist_cls = AVAILABLE_DISTRIBUTIONS.get(code)
+        if dist_cls is None:
+            known = ", ".join(sorted(AVAILABLE_DISTRIBUTIONS.keys()))
+            raise ValueError(f"Unknown distribution code: {code}. Known codes: {known}")
+        return dist_cls().create(params)
+
+    @classmethod
+    def get_distribution(cls, name: str, params: Dict[str, Any]):
+        """Backward-compatible alias; resolves display name or code."""
+        return cls.create(name, params)
+

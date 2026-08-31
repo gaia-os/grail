@@ -7,12 +7,12 @@ metadata:
     - health
 variables:
   - name: Exercise
-    distribution: Bernoulli
+    distribution: bernoulli
     params:
-      probs: 0.5
+      theta: 0.5
     description: Whether an individual exercises during the observation period.
   - name: Health
-    distribution: Normal
+    distribution: normal
     params:
       loc:
         $ref: Exercise
@@ -21,4 +21,3 @@ variables:
 dependencies:
   - source: Exercise
     target: Health
-

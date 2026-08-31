@@ -17,13 +17,13 @@ def test_yaml_spec_compiles_with_declarations_in_any_order(tmp_path: Path):
             "variables": [
                 {
                     "name": "Outcome",
-                    "distribution": "Normal",
+                    "distribution": "normal",
                     "params": {"loc": {"$ref": "Cause"}, "scale": 0.1},
                 },
                 {
                     "name": "Cause",
-                    "distribution": "Bernoulli",
-                    "params": {"probs": 0.5},
+                    "distribution": "bernoulli",
+                    "params": {"theta": 0.5},
                 },
             ],
             "dependencies": [{"source": "Cause", "target": "Outcome"}],
@@ -50,7 +50,7 @@ def test_yaml_spec_compiles_with_declarations_in_any_order(tmp_path: Path):
 def test_repository_supports_nested_yaml_paths(tmp_path: Path):
     repository = FrameRepository(tmp_path)
     frame = Frame("health-model")
-    frame.add_variable("Cause", "Bernoulli", {"probs": 0.5})
+    frame.add_variable("Cause", "bernoulli", {"theta": 0.5})
 
     path = repository.save(frame, "examples/health_model.yaml")
 
@@ -64,10 +64,10 @@ def test_frame_spec_rejects_missing_dependencies_and_cycles():
         "version": 1,
         "name": "invalid-frame",
         "variables": [
-            {"name": "A", "distribution": "Normal", "params": {"loc": 0, "scale": 1}},
+            {"name": "A", "distribution": "normal", "params": {"loc": 0, "scale": 1}},
             {
                 "name": "B",
-                "distribution": "Normal",
+                "distribution": "normal",
                 "params": {"loc": {"$ref": "A"}, "scale": 1},
             },
         ],
@@ -90,8 +90,8 @@ def test_frame_spec_rejects_missing_dependencies_and_cycles():
 
 def test_runtime_frame_protects_graph_integrity():
     frame = Frame("runtime-frame")
-    cause_id = frame.add_variable("Cause", "Normal", {"loc": 0, "scale": 1})
-    effect_id = frame.add_variable("Effect", "Normal", {"loc": cause_id, "scale": 1})
+    cause_id = frame.add_variable("Cause", "normal", {"loc": 0, "scale": 1})
+    effect_id = frame.add_variable("Effect", "normal", {"loc": cause_id, "scale": 1})
     cause_variable = frame.get_variable(cause_id)
     effect_variable = frame.get_variable(effect_id)
     assert frame.get_variable("Cause") is cause_variable
@@ -115,7 +115,7 @@ def test_runtime_frame_protects_graph_integrity():
 def test_sqlite_registry_indexes_yaml_without_storing_its_definition(tmp_path: Path):
     repository = FrameRepository(tmp_path / "frames")
     frame = Frame("registry-frame")
-    frame.add_variable("Latent", "Normal", {"loc": 0, "scale": 1})
+    frame.add_variable("Latent", "normal", {"loc": 0, "scale": 1})
     frame_path = repository.save(frame)
     spec = repository.load_spec(frame_path.name)
     registry = FrameRegistry(tmp_path / "grail.sqlite3")
@@ -131,19 +131,19 @@ def test_sqlite_registry_indexes_yaml_without_storing_its_definition(tmp_path: P
 def test_runtime_frame_validates_variable_names_and_uniqueness():
     frame = Frame("name-validation")
 
-    frame.add_variable("Valid_1", "Normal", {"loc": 0, "scale": 1})
+    frame.add_variable("Valid_1", "normal", {"loc": 0, "scale": 1})
 
     with pytest.raises(ValueError, match="already contains variable"):
-        frame.add_variable("Valid_1", "Normal", {"loc": 0, "scale": 1})
+        frame.add_variable("Valid_1", "normal", {"loc": 0, "scale": 1})
 
     with pytest.raises(ValueError, match="must be non-empty"):
-        frame.add_variable("   ", "Normal", {"loc": 0, "scale": 1})
+        frame.add_variable("   ", "normal", {"loc": 0, "scale": 1})
 
     with pytest.raises(ValueError, match="must start with a letter"):
-        frame.add_variable("1bad", "Normal", {"loc": 0, "scale": 1})
+        frame.add_variable("1bad", "normal", {"loc": 0, "scale": 1})
 
     with pytest.raises(ValueError, match="must start with a letter"):
-        frame.add_variable("bad-name", "Normal", {"loc": 0, "scale": 1})
+        frame.add_variable("bad-name", "normal", {"loc": 0, "scale": 1})
 
     with pytest.raises(ValueError, match="<= 50 chars"):
-        frame.add_variable("A" * 51, "Normal", {"loc": 0, "scale": 1})
+        frame.add_variable("A" * 51, "normal", {"loc": 0, "scale": 1})

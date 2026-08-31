@@ -59,12 +59,12 @@ metadata:
     - health
 variables:
   - name: Exercise
-    distribution: Bernoulli
+    distribution: bernoulli
     params:
-      probs: 0.5
+      theta: 0.5
     description: Whether an individual exercises during the observation period.
   - name: Health
-    distribution: Normal
+    distribution: normal
     params:
       loc:
         $ref: Exercise
@@ -91,7 +91,7 @@ Each variable has a unique `name`, a `distribution`, and a `params` mapping pass
 
 Variable names must begin with a letter and may then contain letters, numbers, and underscores. This restriction keeps YAML names compatible with generated code and probabilistic-program sample sites.
 
-The currently built-in distribution identifiers are `Normal`, `Bernoulli`, `Uniform`, `Exponential`, and `Gamma`. Their parameter names follow Pyro's distribution constructors. Add a distribution to `DistributionFactory` before using another identifier in a Frame.
+Distribution identifiers are lowercase codes. The currently built-in identifiers are `normal`, `bernoulli`, `uniform`, `exponential`, `gamma`, `lognormal`, and `binomial`. Use each distribution's canonical statistical parameter names (for example: Bernoulli `theta`; Binomial `n` and `theta`). Parameters are validated per distribution class before the underlying Pyro distribution is constructed. Add a distribution implementation and register it in `AVAILABLE_DISTRIBUTIONS` before using another identifier in a Frame.
 
 ### Dependencies and parameter references
 
@@ -176,8 +176,8 @@ YAML is preferred for authored and reviewed models. The runtime API remains usef
 from grail.frame import Frame, FrameRepository
 
 frame = Frame("demand-model")
-demand_id = frame.add_variable("Demand", "Normal", {"loc": 100.0, "scale": 10.0})
-frame.add_variable("Price", "Normal", {"loc": demand_id, "scale": 2.0})
+demand_id = frame.add_variable("Demand", "normal", {"loc": 100.0, "scale": 10.0})
+frame.add_variable("Price", "normal", {"loc": demand_id, "scale": 2.0})
 frame.add_dependency("Demand", "Price")
 
 FrameRepository().save(frame)

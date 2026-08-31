@@ -1,4 +1,5 @@
 import torch
+import pytest
 from grail.frame.builder import Builder
 from grail.engine import Engine
 from grail.runner import Runner
@@ -14,11 +15,11 @@ def test_full_simulation_flow():
     # 2. Add Variables
     # A -> B
     # A ~ Bernoulli(0.5)
-    id_a = frame.add_variable("A", "Bernoulli", {"probs": 0.5})
-    
+    id_a = frame.add_variable("A", "bernoulli", {"theta": 0.5})
+
     # B ~ Normal(A, 0.1)
-    id_b = frame.add_variable("B", "Normal", {"loc": id_a, "scale": 0.1})
-    
+    id_b = frame.add_variable("B", "normal", {"loc": id_a, "scale": 0.1})
+
     frame.add_dependency(id_a, id_b)
     
     assert len(frame.graph.graph.nodes) == 2
@@ -59,9 +60,9 @@ def test_intervention():
     frame = builder.new_frame("CausalTest")
     
     # X -> Y
-    id_x = frame.add_variable("X", "Normal", {"loc": 0.0, "scale": 1.0})
-    id_y = frame.add_variable("Y", "Normal", {"loc": id_x, "scale": 0.1})
-    
+    id_x = frame.add_variable("X", "normal", {"loc": 0.0, "scale": 1.0})
+    id_y = frame.add_variable("Y", "normal", {"loc": id_x, "scale": 0.1})
+
     frame.add_dependency(id_x, id_y)
     
     engine = Engine(frame)
@@ -73,3 +74,13 @@ def test_intervention():
     
     assert "Y" in results
     assert torch.abs(results["Y"].mean() - 10.0) < 0.5
+
+
+def test_bernoulli_rejects_non_canonical_param_names():
+    builder = Builder()
+    frame = builder.new_frame("BernoulliStrictParams")
+    frame.add_variable("A", "bernoulli", {"p": 0.9})
+
+    with pytest.raises(ValueError, match="does not accept params"):
+        Runner(Engine(frame).get_model()).simulate(num_samples=5)
+

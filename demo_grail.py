@@ -15,8 +15,8 @@ def main():
     # We use a helper from Frame, or manually add.
     exercise_id = frame.add_variable(
         name="Exercise", 
-        dist="Bernoulli", 
-        params={"probs": 0.5}
+        dist="bernoulli",
+        params={"theta": 0.5}
     )
     
     # Health: Normal(loc=Exercise, scale=0.1)
@@ -24,7 +24,7 @@ def main():
     # So if Exercise=1, Health ~ Normal(1, 0.1). If Exercise=0, Health ~ Normal(0, 0.1).
     health_id = frame.add_variable(
         name="Health",
-        dist="Normal",
+        dist="normal",
         params={"loc": exercise_id, "scale": 0.1}
     )
     
