@@ -47,3 +47,15 @@ def test_factory_rejects_non_canonical_binomial_params():
     with pytest.raises(ValueError, match="does not accept params"):
         DistributionFactory.create("binomial", {"total_count": 10, "p": 0.3})
 
+
+def test_factory_creates_constant_distribution_by_code():
+    constant = DistributionFactory.create("constant", {"value": 42})
+
+    assert float(constant.mean) == pytest.approx(42.0)
+
+
+def test_factory_constant_requires_value_param():
+    with pytest.raises(ValueError, match="requires param: value"):
+        DistributionFactory.create("constant", {})
+
+

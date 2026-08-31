@@ -84,3 +84,18 @@ def test_bernoulli_rejects_non_canonical_param_names():
     with pytest.raises(ValueError, match="does not accept params"):
         Runner(Engine(frame).get_model()).simulate(num_samples=5)
 
+
+def test_constant_variable_drives_dependent_node():
+    builder = Builder()
+    frame = builder.new_frame("ConstantParent")
+
+    id_const = frame.add_variable("Bias", "constant", {"value": 2.5})
+    id_y = frame.add_variable("Y", "normal", {"loc": id_const, "scale": 0.05})
+    frame.add_dependency(id_const, id_y)
+
+    samples = Runner(Engine(frame).get_model()).simulate(num_samples=150)
+
+    assert torch.allclose(samples["Bias"], torch.full_like(samples["Bias"], 2.5), atol=1e-6)
+    assert torch.abs(samples["Y"].mean() - 2.5) < 0.15
+
+

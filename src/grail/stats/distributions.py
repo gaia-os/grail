@@ -125,6 +125,18 @@ class BinomialDistribution(Distribution):
         theta = self.to_tensor(params.get("theta", 0.5))
         return dist.Binomial(total_count=total_count, probs=theta)
 
+
+class ConstantDistribution(Distribution):
+    name = "Constant"
+    code = "constant"
+    allowed_param_names = {"value"}
+
+    def _create(self, params: Dict[str, Any]):
+        if "value" not in params:
+            raise ValueError("Distribution 'constant' requires param: value")
+        value = self.to_tensor(params["value"])
+        return dist.Delta(value)
+
 #===============================================================================
 
 AVAILABLE_DISTRIBUTIONS = {
@@ -135,6 +147,7 @@ AVAILABLE_DISTRIBUTIONS = {
     GammaDistribution.code: GammaDistribution,
     LogNormalDistribution.code: LogNormalDistribution,
     BinomialDistribution.code: BinomialDistribution,
+    ConstantDistribution.code: ConstantDistribution,
 }
 
 
