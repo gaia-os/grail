@@ -115,16 +115,18 @@ Data attached to a node
 
 **Elixir** is a language-model-driven code generation system for constructing statistical operation functions.
 
-Given a Frame's variable structure and dependency graph, Elixir uses an actor-critic loop to generate Python implementations of various statistical operations. The Interpreter specifies which variables are of interest and what operations are needed; Elixir then generates, validates (via critic feedback), and compiles the functions that Frames will use during inference and simulation.
+Given a Frame's variable structure and dependency graph, Elixir uses an actor-critic loop to generate Python implementations of various statistical operations. The Interpreter specifies which variables are of interest and what operations are needed; Elixir then generates, validates (via critic feedback), and compiles the functions that Frames will use to run actual experiments and investigations against a Frame's data.
+
+Its sweet spot is query-driven analysis--turning samples into the specific answer an Interpreter request asked for--plus bespoke inference for submodels that don't fit the hard-coded conjugate catalog (`grail/inference/`) or generic autoguide/MCMC. See [Elixir](modules/elixir.md) for more.
 
 #### Standard Statistical Operations
 
 Elixir can generate implementations for the following operations:
 
-1. **Prior Predictive** - Sample from the prior to validate prior assumptions before observing data
+1. **Prior Predictive** - Sample from the prior and check whether an implied quantity stays plausible
 2. **Likelihood** - Evaluate how well observed data fits under current parameters
-3. **Posterior Inference** - Update beliefs given data (Bayesian inference, etc.)
-4. **Posterior Predictive** - Predict future observations using updated beliefs
+3. **Posterior Inference** - Bespoke inference for submodels not already covered by the conjugate catalog or generic autoguide/MCMC
+4. **Posterior Predictive** - Summarize future/held-out outcomes for the specific query asked (exceedance probability, conditional subgroup estimate, scenario comparison)
 5. **Sensitivity Analysis** - Assess robustness of inferences to perturbations
 6. **Interventional** - Compute causal effects via interventions (do-calculus)
 7. **Counterfactual** - Analyze "what would have happened" under alternative scenarios
@@ -134,7 +136,7 @@ Elixir can generate implementations for the following operations:
 For the initial implementation, Elixir will focus on three core operations:
 
 - **Prior Predictive**: Validation of domain assumptions
-- **Posterior Inference**: Learning from observed data
+- **Posterior Inference**: Bespoke, non-conjugate learning from observed data
 - **Posterior Predictive**: Running simulations and forecasts
 
 Each generated operation accepts integer parameters (e.g., `n_samples`, `n_steps`) to control simulation granularity, which the Engine and Runner use during execution.

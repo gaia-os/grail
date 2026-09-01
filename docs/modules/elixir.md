@@ -1,13 +1,29 @@
 # Elixir
 
-**Elixir** is GRAIL's proposed language-model-assisted statistical operation builder. A
-Frame says *what the world model is*: its variables, distributions, metadata, and
-explicit graph. Elixir is responsible for proposing narrowly scoped Python operations
-that say *what to do with that model*.
+**Elixir** is GRAIL's language-model-assisted statistical operation builder. A Frame
+defines *what the world model is*--variables, distributions, dependencies. Elixir
+proposes narrowly scoped Python operations that say *what to do with that model*: the
+actual experiments and investigations run against a Frame's data.
 
-It is not intended to replace the Frame graph or infer hidden graph structure from
-code. The dependency graph remains declarative and primary; generated operations are
-derived artifacts that must respect it.
+It does not replace the Frame graph or infer hidden structure from code. The
+dependency graph stays declarative and primary; generated operations are derived
+artifacts that must respect it.
+
+## What Elixir is for
+
+Most of the value is in answering *specific* questions about a Frame: turning
+prior/posterior samples into an exceedance probability, a conditional subgroup
+estimate, a sensitivity check, or an interventional/counterfactual comparison. Each of
+these depends on what a particular request actually asks--which variables, which
+conditioning, which summary--so it's naturally something to compose per-question
+rather than hard-code once.
+
+Elixir is also useful for inference on submodels that don't fit the standard
+conjugate catalog (`grail/inference/`) or the generic SVI/MCMC fallback--e.g. models
+with correlated, skewed, or discrete-latent structure that want a custom guide or
+enumeration strategy. Well-tested generated routines like this are good candidates to
+later graduate into that hard-coded catalog, so the static library grows from what
+Elixir discovers instead of regenerating the same solved routine every run.
 
 ## Role in the system
 
@@ -28,25 +44,6 @@ The intended flow is:
 This division lets GRAIL use generated code without treating it as the source of a
 world model. A Frame can be recompiled, inspected, or manually edited independently
 of any generated operation.
-
-## Operations
-
-The initial target operation set is:
-
-- **Prior predictive**: draw from a Frame before conditioning on data, to inspect
-  whether domain assumptions produce plausible outcomes.
-- **Posterior inference**: update beliefs using observations or other supplied data.
-- **Posterior predictive**: draw future/held-out outcomes from beliefs after
-  inference.
-
-All three should expose explicit integer run controls such as `n_samples` and
-`n_steps`; the Engine and Runner use these when executing an operation.
-
-The broader catalog remains a design target, not a promise of current functionality:
-likelihood evaluation, sensitivity analysis, interventional simulation, and
-counterfactual analysis. Those operations require more than code generation: they
-need clear model semantics, diagnostics, test fixtures, and—in the causal cases—a
-justified causal graph.
 
 ## Current implementation surfaces
 
@@ -87,17 +84,6 @@ operation provenance, reproducible environments, and artifact persistence are
 important next pieces before generated functions are treated as durable application
 assets.
 
-## Safety boundary
-
-Elixir-generated Python is untrusted input. AST checks and an import allowlist are
-useful guardrails, but they are not a security sandbox. In particular, the current
-experimental code-loading path executes Python in-process.
-
-Applications should not execute generated code merely because an LLM or critic
-approved it. The eventual design should add isolated execution, resource limits,
-allowlisted dependencies, test gates, and a human/application approval policy before
-an operation can affect durable state or external systems.
-
 ## Relationship to Frames
 
 Frame definitions should remain portable YAML. Generated operations should instead
@@ -113,4 +99,3 @@ This makes operation invalidation tractable: changing a Frame can mark dependent
 operations stale without losing the Frame itself. It also lets an application choose
 whether an operation is ephemeral for one analysis or promoted to a reusable
 Frame-associated asset.
-

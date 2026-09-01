@@ -10,6 +10,13 @@ It combines declarative model definitions (**Frames**) with executable inference
 GRAIL is designed to make world-model construction and Bayesian analysis practical without hiding model structure.
 The core idea is simple: keep the model definition explicit and reviewable, then layer inference and AI assistance on top.
 
+## Illustrative Example: Health and Exercise
+
+Highly recommended is to read this short [Illustrative Example](docs/illustrative_health_example.md)
+to get a sense of the usage flow of GRAIL and its purpose.
+
+---
+
 ## Current State (v0.x)
 
 - **Frames are live**: YAML model specs define variables, distributions, and dependencies, then validate/compile through `FrameRepository`.
@@ -34,10 +41,9 @@ The core idea is simple: keep the model definition explicit and reviewable, then
 
 ## Documentation
 
-- Overview and roadmap notes: [`docs/sketch.md`](docs/sketch.md)
+- Illustrative walkthrough (start here): [`docs/illustrative_health_example.md`](docs/illustrative_health_example.md)
 - Frames: [`docs/modules/frames.md`](docs/modules/frames.md)
 - Engine: [`docs/modules/engine.md`](docs/modules/engine.md)
 - Runner: [`docs/modules/runner.md`](docs/modules/runner.md)
 - Observations/posteriors: [`docs/modules/observations.md`](docs/modules/observations.md)
 - Elixir: [`docs/modules/elixir.md`](docs/modules/elixir.md)
-- Tooling/storage architecture: [`docs/systems-arch.md`](docs/systems-arch.md)
