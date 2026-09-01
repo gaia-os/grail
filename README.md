@@ -2,7 +2,7 @@
 
 _Graph Reasoning from AI Learning_
 
-GRAIL is a local-first toolkit for building probabilistic world models with explicit graph structure.
+GRAIL is a toolkit for building probabilistic world/causal models with explicit graph structure.
 It combines declarative model definitions (**Frames**) with executable inference tooling (**Engine/Runner**) and an LLM-assisted operation-generation foundation (**Elixir**).
 
 ## Purpose
