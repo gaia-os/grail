@@ -1,7 +1,5 @@
 """SQLite-backed index for canonical Frame YAML artifacts."""
 
-from __future__ import annotations
-
 from datetime import datetime, timezone
 from hashlib import sha256
 from pathlib import Path

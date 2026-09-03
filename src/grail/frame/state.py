@@ -6,13 +6,12 @@ runtime evidence and derived posterior state in SQLite instead of mutating that
 declarative source.
 """
 
-from __future__ import annotations
-
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from hashlib import sha256
 import json
+import math
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
@@ -436,6 +435,8 @@ def _json_safe(value: Any) -> Any:
         return [_json_safe(item) for item in value]
     if isinstance(value, list):
         return [_json_safe(item) for item in value]
+    if isinstance(value, float) and not math.isfinite(value):
+        raise ValueError(f"observation value must be finite, got {value!r}")
     try:
         json.dumps(value, allow_nan=False)
     except (TypeError, ValueError) as error:

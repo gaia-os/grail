@@ -1,6 +1,7 @@
 import pytest
+import torch
 
-from grail.stats.distributions import DistributionFactory
+from grail.stats.distributions import Distribution, DistributionFactory
 
 
 def test_factory_creates_distribution_by_code():
@@ -65,3 +66,53 @@ def test_factory_creates_constant_distribution_by_code():
 def test_factory_constant_requires_value_param():
     with pytest.raises(ValueError, match="requires param: value"):
         DistributionFactory.create("constant", {})
+
+
+@pytest.mark.parametrize(
+    ("code", "params"),
+    [
+        ("normal", {"loc": 0.0, "scale": 1.0}),
+        ("bernoulli", {"theta": 0.5}),
+        ("uniform", {"low": 0.0, "high": 1.0}),
+        ("exponential", {"rate": 1.0}),
+        ("gamma", {"concentration": 2.0, "rate": 1.0}),
+        ("lognormal", {"loc": 0.0, "scale": 1.0}),
+        ("binomial", {"n": 5, "theta": 0.5}),
+        ("beta", {"alpha": 2.0, "beta": 2.0}),
+        ("constant", {"value": 1.0}),
+    ],
+)
+def test_every_registered_distribution_can_sample(code: str, params: dict):
+    assert DistributionFactory.create(code, params).sample().numel() == 1
+
+
+def test_get_distribution_is_an_alias_for_create():
+    assert float(DistributionFactory.get_distribution("beta", {"alpha": 2.0, "beta": 2.0}).mean) == (
+        pytest.approx(0.5)
+    )
+
+
+def test_to_tensor_converts_python_numerics_to_float32():
+    for value in (1, 1.0, True, [1, 2]):
+        assert Distribution.to_tensor(value).dtype == torch.float32
+
+
+def test_to_tensor_passes_existing_tensors_through_unchanged():
+    supplied = torch.tensor([1.0], dtype=torch.float64)
+
+    assert Distribution.to_tensor(supplied) is supplied
+
+
+def test_to_tensor_stacks_sequences_containing_tensors():
+    """Resolved parameter references arrive as tensors that must keep batch dims."""
+    stacked = Distribution.to_tensor([torch.tensor(1.0), 2.0])
+    assert stacked.tolist() == [1.0, 2.0]
+
+    batched = Distribution.to_tensor([torch.zeros(4), torch.ones(4)])
+    assert batched.shape == (4, 2)
+
+
+@pytest.mark.parametrize("value", ["Cause", {"$ref": "Cause"}])
+def test_to_tensor_rejects_unresolved_reference_shapes(value):
+    with pytest.raises(TypeError, match="denote variable references"):
+        Distribution.to_tensor(value)

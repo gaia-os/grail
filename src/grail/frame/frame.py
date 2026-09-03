@@ -1,7 +1,5 @@
 """Compiled runtime Frame objects consumed by GRAIL's execution layer."""
 
-from __future__ import annotations
-
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from hashlib import sha256
@@ -296,7 +294,7 @@ class Frame:
         )
 
     @classmethod
-    def from_spec(cls, spec: FrameSpec) -> Frame:
+    def from_spec(cls, spec: FrameSpec) -> "Frame":
         """Compile a validated declarative specification into a runtime Frame."""
         frame = cls(name=spec.name, metadata=spec.metadata, version=spec.version)
         logger.info(
@@ -402,7 +400,7 @@ class Frame:
         return None
 
     def _resolve_dependency_node_id(self, variable_or_id: Variable | str) -> str:
-        """Resolve a dependency endpoint given a Variable instance or node ID."""
+        """Resolve a dependency endpoint given a Variable instance, name, or node ID."""
         if isinstance(variable_or_id, Variable):
             if variable_or_id.node_id is None:
                 raise KeyError(
@@ -416,11 +414,14 @@ class Frame:
                 )
             return variable_or_id.node_id
 
-        # Should be a VariableNode graph ID then
+        # A runtime node ID, or the stable variable name accepted elsewhere on Frame.
         node = self.graph.get_node(variable_or_id)
         if isinstance(node, VariableNode):
             return variable_or_id
-        raise KeyError(f"Frame '{self.name}' has no variable with id '{variable_or_id}'")
+        node_id = self._find_node_id_by_name(variable_or_id)
+        if node_id is not None:
+            return node_id
+        raise KeyError(f"Frame '{self.name}' has no variable named or id '{variable_or_id}'")
 
     def _require_state_store(self) -> FrameStateStore:
         if self._state_store is None:

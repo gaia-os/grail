@@ -1,7 +1,5 @@
 """Exact, resumable inference for Beta priors with Bernoulli likelihoods."""
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING, Any
 
 from grail.frame.state import PosteriorState
@@ -21,11 +19,22 @@ class BetaBernoulliInference(InferenceStrategy):
     parameters exactly once.  This strategy is intentionally independent of
     :class:`grail.engine.Engine` and can be replaced by another strategy for a
     different model family.
+
+    Saved metadata records provenance for the update:
+
+    ``processed_batch_ids``
+        Every batch ever folded into this posterior.  Cumulative, and the field
+        that makes a repeated :meth:`infer` a no-op rather than a double count.
+    ``new_batch_ids``
+        The batches consumed by the update that last *changed* the posterior.
+        Inferring again with no new evidence returns the stored snapshot
+        unchanged, so this field still describes that earlier update rather
+        than resetting to empty.
     """
 
     name = "beta-bernoulli-exact"
 
-    def infer(self, frame: Frame) -> dict[str, PosteriorState]:
+    def infer(self, frame: "Frame") -> dict[str, PosteriorState]:
         """Update all compatible Beta variables from newly recorded Bernoulli evidence."""
         posteriors: dict[str, PosteriorState] = {}
         for variable in frame.get_variables():
@@ -40,7 +49,7 @@ class BetaBernoulliInference(InferenceStrategy):
         return posteriors
 
     def _update_variable(
-        self, frame: Frame, variable: Variable, likelihood_variables: list[Variable]
+        self, frame: "Frame", variable: "Variable", likelihood_variables: list["Variable"]
     ) -> PosteriorState | None:
         prior_params = variable.get_distribution_params()
         alpha_prior = _positive_number(prior_params.get("alpha", 1.0), "alpha")
@@ -101,7 +110,7 @@ class BetaBernoulliInference(InferenceStrategy):
         )
 
     @staticmethod
-    def _likelihood_variables(frame: Frame, theta: Variable) -> list[Variable]:
+    def _likelihood_variables(frame: "Frame", theta: "Variable") -> list["Variable"]:
         if theta.node_id is None:
             return []
         likelihoods = []

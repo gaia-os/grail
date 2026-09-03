@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from collections.abc import Mapping
 from typing import Any, ClassVar
 
 import pyro.distributions as dist
@@ -26,8 +27,33 @@ class Distribution(ABC):
 
     @staticmethod
     def to_tensor(value: Any) -> Any:
-        if isinstance(value, (list, float, int)):
+        """
+        Coerce a parameter into a float tensor, passing existing tensors through.
+
+        Sequences containing tensors are stacked on the trailing axis so that any
+        leading batch dimensions introduced by sampling are preserved.
+        """
+        if isinstance(value, torch.Tensor):
+            return value
+        if isinstance(value, (list, tuple)):
+            if any(isinstance(item, torch.Tensor) for item in value):
+                return torch.stack(
+                    [
+                        item if isinstance(item, torch.Tensor)
+                        else torch.tensor(item, dtype=torch.float32)
+                        for item in value
+                    ],
+                    dim=-1,
+                )
             return torch.tensor(value, dtype=torch.float32)
+        if isinstance(value, (bool, int, float)):
+            return torch.tensor(value, dtype=torch.float32)
+        if isinstance(value, (str, Mapping)):
+            raise TypeError(
+                f"distribution parameter must be numeric, got {type(value).__name__}: "
+                f"{value!r}. String and mapping parameters denote variable references, "
+                f"which the Engine resolves when it compiles a Frame."
+            )
         return value
 
     def normalize_and_validate_params(self, params: dict[str, Any]) -> dict[str, Any]:

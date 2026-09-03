@@ -8,18 +8,19 @@ Think of it as the runtime API for your analysis calls.
 
 - `simulate(num_samples, data=None)`
   - prior predictive sampling
-- `train_svi(data=None, n_steps, learning_rate)`
-  - fits an in-memory variational posterior from scratch
+- `train_svi(data=None, n_steps, learning_rate, guide=None)`
+  - fits an in-memory variational posterior from scratch, with an
+    `AutoDiagonalNormal` guide unless you supply one
 - `predict(num_samples, data=None)`
   - posterior predictive sampling (after `train_svi()`)
 - `infer(strategy)`
   - runs a Frame-aware strategy against persisted observation history and retains its posterior
-- `do_operation(interventions, num_samples)`
+- `do_operation(interventions, num_samples, data=None)`
   - sampling under interventions
 
 ## Inputs and outputs
 
-- Input data is a mapping keyed by variable name.
+- Input data is a mapping keyed by variable name (or node ID).
 - Predictive calls return tensors by sample-site name.
 - `train_svi()` returns a loss curve (one value per step).
 
@@ -36,6 +37,13 @@ Think of it as the runtime API for your analysis calls.
 ## About interventions
 
 `do_operation()` is useful for intervention-style experiments.
+
+Pyro implements `do` as a Single World Intervention Graph: downstream variables
+see the value you imposed, but the trace's own site for an intervened variable
+holds a fresh draw from its original distribution that propagates nowhere.
+Returning that draw would misreport the world you asked about, so GRAIL replaces
+the intervened sites with the values actually imposed. `samples["X"]` after
+`do_operation({"X": 10.0})` is therefore `10.0`, not a prior draw.
 
 Interpretation still depends on model quality: intervention results are only causal if
 your Frame's structure is a valid causal model.

@@ -1,7 +1,8 @@
-import pytest
 from pydantic import ValidationError
-from grail.elixir import ElixirValidator, ElixirException
-from grail.elixir.validator import ElixirInputVar, ElixirOutputVar, GREEN_IMPORTS, INSECURE_METHODS
+import pytest
+
+from grail.elixir import ElixirException, ElixirValidator
+from grail.elixir.validator import GREEN_IMPORTS, INSECURE_METHODS, ElixirInputVar, ElixirOutputVar
 
 # --- Scenarios for Base Code Validator ---
 

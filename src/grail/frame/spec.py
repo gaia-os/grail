@@ -7,8 +7,6 @@ variable's runtime value (its sampled content) when evaluating params, and it
 must be backed by a matching declared dependency edge.
 """
 
-from __future__ import annotations
-
 from collections.abc import Mapping
 from typing import Any
 
@@ -65,7 +63,7 @@ class DependencySpec(BaseModel):
     attributes: dict[str, Any] = Field(default_factory=dict)
 
     @model_validator(mode="after")
-    def reject_self_dependency(self) -> DependencySpec:
+    def reject_self_dependency(self) -> "DependencySpec":
         """Reject self-links before graph construction."""
         if self.source == self.target:
             raise ValueError("a dependency cannot target the same variable")
@@ -92,7 +90,7 @@ class FrameSpec(BaseModel):
         return value
 
     @model_validator(mode="after")
-    def validate_graph(self) -> FrameSpec:
+    def validate_graph(self) -> "FrameSpec":
         """Validate names, references, and DAG constraints before runtime compilation."""
         logger.debug(
             f"Validating Frame spec '{self.name}' with {len(self.variables)} variables"

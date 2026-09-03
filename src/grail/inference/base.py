@@ -1,7 +1,5 @@
 """Inference strategy interfaces independent of the model execution engine."""
 
-from __future__ import annotations
-
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
@@ -17,5 +15,5 @@ class InferenceStrategy(ABC):
     name: str
 
     @abstractmethod
-    def infer(self, frame: Frame) -> dict[str, PosteriorState]:
+    def infer(self, frame: "Frame") -> dict[str, PosteriorState]:
         """Update compatible latent variables from unprocessed persistent evidence."""

@@ -1,7 +1,5 @@
 """YAML persistence for canonical Frame specifications."""
 
-from __future__ import annotations
-
 from pathlib import Path
 
 import yaml

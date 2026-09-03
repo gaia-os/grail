@@ -54,3 +54,12 @@ python-preference = "managed"
 
 [tool.hatch.metadata]
 allow-direct-references = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--strict-markers"
+# filterwarnings = [
+#   # Calling a compiled model directly, outside Predictive/SVI, is a deliberate
+#   # way to assert how the Engine wires observations into a trace.
+#   "ignore:trying to observe a value outside of inference:RuntimeWarning",
+# ]
