@@ -44,8 +44,8 @@ Each call creates an immutable batch in the `graph_observation_batches` and
 `batch_id` and identical values is safe; attempting to reuse that ID for different data
 raises an error. The data is retained after recreating and reloading the Frame.
 
-`Engine.get_model()(data=...)` continues to support temporary, in-memory conditioning.
-That method does **not** persist its `data` mapping. Call `record_observations()` when
+`Engine.get_model()(observations=...)` continues to support temporary, in-memory
+conditioning. That method does **not** persist its `observations` mapping. Call `record_observations()` when
 an observation must be part of the Frame's durable evidence history.
 
 ## Upload a JSON observation file

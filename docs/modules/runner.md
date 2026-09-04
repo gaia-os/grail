@@ -6,21 +6,22 @@ Think of it as the runtime API for your analysis calls.
 
 ## Main methods
 
-- `simulate(num_samples, data=None)`
+- `simulate(num_samples, observations=None)`
   - prior predictive sampling
-- `train_svi(data=None, n_steps, learning_rate, guide=None)`
+- `train_svi(observations=None, n_steps, learning_rate, guide=None)`
   - fits an in-memory variational posterior from scratch, with an
     `AutoDiagonalNormal` guide unless you supply one
-- `predict(num_samples, data=None)`
+- `predict(num_samples)`
   - posterior predictive sampling (after `train_svi()`)
 - `infer(strategy)`
   - runs a Frame-aware strategy against persisted observation history and retains its posterior
-- `do_operation(interventions, num_samples, data=None)`
+- `do_operation(interventions, num_samples, observations=None)`
   - sampling under interventions
 
 ## Inputs and outputs
 
-- Input data is a mapping keyed by variable name (or node ID).
+- Observations are mappings keyed by variable name (or node ID). Supply them to
+  `simulate()`, `train_svi()`, or `do_operation()` when conditioning the model.
 - Predictive calls return tensors by sample-site name.
 - `train_svi()` returns a loss curve (one value per step).
 
@@ -28,7 +29,7 @@ Think of it as the runtime API for your analysis calls.
 
 ## Usage notes
 
-- A single Frame can be run many times with different data and run settings.
+- A single Frame can be run many times with different observations and run settings.
 - Keep run settings with saved results so runs are reproducible.
 - Treat Runner instances as short-lived per analysis task.
 - Construct `Runner(model, frame=frame)` when calling `infer()`. For the exact,

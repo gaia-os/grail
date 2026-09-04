@@ -81,7 +81,9 @@ def test_conditioning_on_a_child_shifts_the_inferred_parent():
     frame.add_dependency("Cause", "Effect")
     runner = Runner(Engine(frame).get_model())
 
-    runner.train_svi(data={"Effect": torch.tensor(3.0)}, n_steps=800, learning_rate=0.05)
+    runner.train_svi(
+        observations={"Effect": torch.tensor(3.0)}, n_steps=800, learning_rate=0.05
+    )
     posterior = runner.predict(num_samples=400)
 
     assert float(posterior["Cause"].mean()) == pytest.approx(3.0, abs=0.4)

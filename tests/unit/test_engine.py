@@ -119,16 +119,16 @@ def test_frame_without_variables_cannot_compile():
         Engine(Frame("empty")).get_model()
 
 
-def test_data_keys_must_name_a_variable():
+def test_observation_keys_must_name_a_variable():
     frame = Frame("typo-guard")
     frame.add_variable("Exercise", "bernoulli", {"theta": 0.5})
     model = Engine(frame).get_model()
 
     with pytest.raises(KeyError, match=r"no variables named \['Exercse'\]"):
-        model({"Exercse": torch.tensor(1.0)})
+        model(observations={"Exercse": torch.tensor(1.0)})
 
 
-def test_data_may_be_keyed_by_name_or_node_id():
+def test_observations_may_be_keyed_by_name_or_node_id():
     frame = Frame("keying")
     node_id = frame.add_variable("Outcome", "normal", {"loc": 0.0, "scale": 1.0})
     model = Engine(frame).get_model()
@@ -137,7 +137,7 @@ def test_data_may_be_keyed_by_name_or_node_id():
     assert float(model({node_id: torch.tensor(9.0)})[node_id]) == pytest.approx(9.0)
 
 
-def test_runtime_data_overrides_observations_attached_to_the_frame():
+def test_runtime_observations_override_observations_attached_to_the_frame():
     frame = Frame("override")
     node_id = frame.add_variable(
         "Outcome", "normal", {"loc": 0.0, "scale": 1.0}, observations=[1.0]
@@ -159,6 +159,17 @@ def test_observations_are_coerced_to_float_tensors():
 
     assert observed.dtype == torch.float32
     assert observed.tolist() == [1.0, 1.0, 0.0]
+
+
+def test_scalar_runtime_observation_is_coerced_to_a_float32_scalar_tensor():
+    frame = Frame("runtime-scalar-dtype")
+    node_id = frame.add_variable("Outcome", "normal", {"loc": 0.0, "scale": 1.0})
+
+    observed = Engine(frame).get_model()({"Outcome": 7})[node_id]
+
+    assert observed.dtype == torch.float32
+    assert observed.shape == torch.Size()
+    assert observed.item() == pytest.approx(7.0)
 
 
 def test_existing_tensors_are_passed_through_unchanged():

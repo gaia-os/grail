@@ -30,12 +30,24 @@ def test_simulate_propagates_parent_values_to_children(chain_runner: Runner):
     assert torch.abs(samples["Effect"] - samples["Cause"]).mean() < 0.2
 
 
+def test_simulate_forwards_runtime_observations_to_the_compiled_model(chain_runner: Runner):
+    samples = chain_runner.simulate(num_samples=32, observations={"Cause": 4.0})
+
+    assert torch.allclose(samples["Cause"], torch.full((32,), 4.0))
+    assert float(samples["Effect"].mean()) == pytest.approx(4.0, abs=0.1)
+
+
+def test_simulate_propagates_compiled_model_observation_key_errors(chain_runner: Runner):
+    with pytest.raises(KeyError, match=r"no variables named \['Casue'\]"):
+        chain_runner.simulate(num_samples=4, observations={"Casue": 4.0})
+
+
 def test_train_svi_recovers_a_known_location(chain_frame: Frame):
     """SVI on Cause given a tightly-coupled observed Effect should find its value."""
     runner = Runner(Engine(chain_frame).get_model(), frame=chain_frame)
 
     losses = runner.train_svi(
-        data={"Effect": torch.tensor(2.0)}, n_steps=600, learning_rate=0.05
+        observations={"Effect": torch.tensor(2.0)}, n_steps=600, learning_rate=0.05
     )
 
     assert len(losses) == 600
@@ -55,7 +67,9 @@ def test_train_svi_accepts_a_caller_supplied_guide(chain_frame: Frame):
     runner = Runner(Engine(chain_frame).get_model())
     guide = AutoNormal(runner.model)
 
-    runner.train_svi(data={"Effect": torch.tensor(1.0)}, n_steps=10, guide=guide)
+    runner.train_svi(
+        observations={"Effect": torch.tensor(1.0)}, n_steps=10, guide=guide
+    )
 
     assert runner.guide is guide
 
@@ -86,6 +100,17 @@ def test_do_operation_accepts_plain_python_numbers(chain_runner: Runner):
     assert float(samples["Effect"].mean()) == pytest.approx(4.0, abs=0.15)
 
 
+def test_do_operation_preserves_vector_intervention_shape(chain_runner: Runner):
+    intervention = torch.tensor([3.0, 7.0])
+
+    samples = chain_runner.do_operation({"Cause": intervention}, num_samples=16)
+
+    assert samples["Cause"].shape == (16, 2)
+    assert torch.allclose(samples["Cause"], intervention.expand(16, 2))
+    assert samples["Effect"].shape == (16, 2)
+    assert samples["Effect"].mean(dim=0).tolist() == pytest.approx([3.0, 7.0], abs=0.1)
+
+
 def test_do_operation_requires_at_least_one_intervention(chain_runner: Runner):
     with pytest.raises(ValueError, match="at least one intervention"):
         chain_runner.do_operation({}, num_samples=4)
@@ -101,7 +126,7 @@ def test_do_operation_tolerates_a_hand_written_model():
     import pyro
     import pyro.distributions as dist
 
-    def model(data=None):
+    def model(observations=None):
         return {"X": pyro.sample("X", dist.Normal(0.0, 1.0))}
 
     samples = Runner(model).do_operation({"X": 3.0}, num_samples=5)

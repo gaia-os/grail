@@ -29,23 +29,25 @@ class Runner:
         self.guide = None  # Set by train_svi; required by predict.
         logger.info("Runner initialized.")
 
-    def simulate(self, num_samples: int = 1, data: Mapping[str, Any] | None = None):
+    def simulate(
+        self, num_samples: int = 1, observations: Mapping[str, Any] | None = None
+    ):
         """
         Runs forward simulations (Prior Predictive) to generate data.
         """
         logger.info(f"Running simulation with {num_samples} samples.")
         predictive = Predictive(self.model, num_samples=num_samples)
-        return predictive(data)
+        return predictive(observations)
 
     def train_svi(
         self,
-        data: Mapping[str, Any] | None = None,
+        observations: Mapping[str, Any] | None = None,
         n_steps: int = 1000,
         learning_rate: float = 0.01,
         guide: Callable | None = None,
     ):
         """
-        Fits the model to data using Stochastic Variational Inference (SVI).
+        Fits the model to observations using Stochastic Variational Inference (SVI).
 
         Uses an ``AutoDiagonalNormal`` guide unless one is supplied. This clears
         Pyro's global parameter store so each fit starts fresh, and leaves the
@@ -66,7 +68,7 @@ class Runner:
         log_interval = max(1, n_steps // 10)
         loss_history = []
         for step in range(n_steps):
-            loss = svi.step(data)
+            loss = svi.step(observations)
             loss_history.append(loss)
             if step % log_interval == 0:
                 logger.info(f"[Step {step}] Loss: {loss}")
@@ -90,7 +92,7 @@ class Runner:
         logger.info("Running inference strategy '%s' for Frame '%s'", strategy.name, self.frame.name)
         return strategy.infer(self.frame)
 
-    def predict(self, num_samples: int = 100, data: Mapping[str, Any] | None = None):
+    def predict(self, num_samples: int = 100):
         """
         Posterior Predictive sampling after training.
         """
@@ -99,13 +101,13 @@ class Runner:
 
         logger.info(f"Generating posterior predictions with {num_samples} samples.")
         predictive = Predictive(self.model, guide=self.guide, num_samples=num_samples)
-        return predictive(data)
+        return predictive()
 
     def do_operation(
         self,
         interventions: Mapping[str, Any],
         num_samples: int = 1,
-        data: Mapping[str, Any] | None = None,
+        observations: Mapping[str, Any] | None = None,
     ):
         """
         Performs a 'do' operation (intervention) on the model.
@@ -126,7 +128,7 @@ class Runner:
         logger.info(f"Performing do-operation with interventions: {dict(interventions)}")
         intervened_model = pyro.do(self.model, data=dict(interventions))
         predictive = Predictive(intervened_model, num_samples=num_samples)
-        samples = predictive(data)
+        samples = predictive(observations)
 
         for name, value in interventions.items():
             tensor = value if isinstance(value, torch.Tensor) else torch.tensor(

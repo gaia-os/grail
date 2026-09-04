@@ -30,7 +30,7 @@ class Engine:
         """
         Return a callable Pyro model function based on the Frame.
 
-        The returned callable accepts an optional ``data`` mapping of variable
+        The returned callable accepts an optional ``observations`` mapping of variable
         name (or node ID) to observed values, which takes precedence over any
         observations attached to the Frame's variables. It carries a
         ``variable_names`` attribute listing the Pyro sample sites it creates.
@@ -51,9 +51,9 @@ class Engine:
         # Observations may be keyed by either stable name or runtime node ID.
         observable_keys = variable_names | {node.id for node in variable_nodes}
 
-        def model(data: Mapping[str, Any] | None = None) -> dict[str, Any]:
-            data = {} if data is None else dict(data)
-            unknown_keys = sorted(set(data) - observable_keys)
+        def model(observations: Mapping[str, Any] | None = None) -> dict[str, Any]:
+            observations = {} if observations is None else dict(observations)
+            unknown_keys = sorted(set(observations) - observable_keys)
             if unknown_keys:
                 raise KeyError(
                     f"Frame '{self.frame.name}' has no variables named {unknown_keys}. "
@@ -77,7 +77,7 @@ class Engine:
                 )
                 distribution = DistributionFactory.create(distribution_name, params)
 
-                observed = self._resolve_observation(node, data)
+                observed = self._resolve_observation(node, observations)
                 value = pyro.sample(node.name, distribution, obs=observed)
 
                 runtime_values[node.id] = value
@@ -142,12 +142,14 @@ class Engine:
         )
 
     @staticmethod
-    def _resolve_observation(node: VariableNode, data: Mapping[str, Any]) -> Any | None:
-        """Select runtime data over Frame-attached observations for one variable."""
-        if node.name in data:
-            observed = data[node.name]
-        elif node.id in data:
-            observed = data[node.id]
+    def _resolve_observation(
+        node: VariableNode, observations: Mapping[str, Any]
+    ) -> Any | None:
+        """Select runtime observations over Frame-attached observations for one variable."""
+        if node.name in observations:
+            observed = observations[node.name]
+        elif node.id in observations:
+            observed = observations[node.id]
         elif node.is_observed:
             observed = node.get_observations()
         else:
