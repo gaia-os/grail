@@ -162,3 +162,61 @@ def test_state_survives_reopening_the_database(tmp_path: Path):
     reopened = FrameStateStore(database)
 
     assert [b.id for b in reopened.get_observation_batches(FRAME, HASH)] == ["persisted"]
+
+
+def test_run_records_can_be_created_and_completed(store: FrameStateStore):
+    created = store.create_run_record(
+        FRAME,
+        HASH,
+        strategy_id="beta-bernoulli-exact",
+        observation_batch_ids=["batch-001"],
+        parameters={"n_steps": 10},
+        versions={"runner": 1},
+    )
+
+    completed = store.mark_run_succeeded(
+        created["id"],
+        diagnostics={"posterior_count": 1},
+        artifact_paths={"metadata": "data/runs/abc/metadata.json"},
+    )
+
+    assert completed["status"] == "succeeded"
+    assert completed["diagnostics"]["posterior_count"] == 1
+    assert completed["artifact_paths"]["metadata"].endswith("metadata.json")
+
+
+def test_run_record_failures_are_persisted(store: FrameStateStore):
+    created = store.create_run_record(FRAME, HASH, strategy_id="bad-strategy")
+
+    failed = store.mark_run_failed(
+        created["id"],
+        error_type="RuntimeError",
+        error_message="explode",
+        error_traceback="trace",
+        diagnostics={"posterior_count": 0},
+    )
+
+    assert failed["status"] == "failed"
+    assert failed["error_type"] == "RuntimeError"
+    assert failed["error_message"] == "explode"
+
+
+def test_run_records_are_scoped_by_definition_hash(store: FrameStateStore):
+    store.create_run_record(FRAME, HASH, strategy_id="exact", run_id="run-a")
+
+    assert store.get_run_record(FRAME, OTHER_HASH, "run-a") is None
+    assert len(store.list_run_records(FRAME, HASH)) == 1
+    assert store.list_run_records(FRAME, OTHER_HASH) == []
+
+
+def test_run_records_survive_reopening_the_database(tmp_path: Path):
+    database = tmp_path / "state.sqlite3"
+    first = FrameStateStore(database)
+    created = first.create_run_record(FRAME, HASH, strategy_id="exact")
+    first.mark_run_succeeded(created["id"], diagnostics={"ok": True})
+
+    reopened = FrameStateStore(database)
+    records = reopened.list_run_records(FRAME, HASH)
+
+    assert len(records) == 1
+    assert records[0]["status"] == "succeeded"

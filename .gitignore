@@ -21,6 +21,7 @@ grail_workspace
 # AI things
 #==========================
 .aiassistant
+/planning/
 
 # OS things
 *.DS_Store

@@ -1,13 +1,17 @@
 """Simulation, training, intervention, and inference dispatch on compiled models."""
 
 
+from typing import Any
+
 import pytest
 import torch
 
 from grail.engine import Engine
 from grail.frame import Frame
 from grail.inference import BetaBernoulliInference
+from grail.inference.base import InferenceStrategy
 from grail.runner import Runner
+from grail.runner.utils import list_runs
 
 
 @pytest.fixture
@@ -139,3 +143,36 @@ def test_infer_requires_a_frame(chain_frame: Frame):
 
     with pytest.raises(ValueError, match="requires a Frame"):
         runner.infer(BetaBernoulliInference())
+
+
+def test_infer_creates_a_succeeded_run_record(coin_frame: Frame):
+    coin_frame.record_observations("Toss", [1, 0, 1], batch_id="batch-001")
+    runner = Runner(Engine(coin_frame).get_model(), frame=coin_frame)
+
+    posteriors = runner.infer(BetaBernoulliInference())
+
+    assert set(posteriors) == {"Theta"}
+    runs = list_runs(coin_frame)
+    assert len(runs) == 1
+    assert runs[0].status.value == "succeeded"
+    assert runs[0].strategy_id == "beta-bernoulli-exact"
+    assert runs[0].observation_batch_ids == ["batch-001"]
+
+
+def test_infer_records_failures_and_reraises(coin_frame: Frame):
+    class ExplodingStrategy(InferenceStrategy):
+        name = "exploding"
+
+        def infer(self, frame: Frame) -> dict[str, Any]:
+            raise RuntimeError("boom")
+
+    runner = Runner(Engine(coin_frame).get_model(), frame=coin_frame)
+
+    with pytest.raises(RuntimeError, match="boom"):
+        runner.infer(ExplodingStrategy())
+
+    runs = list_runs(coin_frame)
+    assert len(runs) == 1
+    assert runs[0].status.value == "failed"
+    assert runs[0].error_type == "RuntimeError"
+    assert runs[0].error_message == "boom"

@@ -1,7 +1,11 @@
 """Execution of compiled Frame models: simulation, training, and inference."""
 
 from collections.abc import Callable, Mapping
+import json
+from pathlib import Path
+import traceback
 from typing import Any
+from uuid import uuid4
 
 import pyro
 from pyro.infer import SVI, Predictive, Trace_ELBO
@@ -13,6 +17,8 @@ from grail.frame import Frame
 from grail.frame.state import PosteriorState
 from grail.inference import InferenceStrategy
 from grail.logger import logger
+from grail.runner.record import RunRecord
+from grail.settings import RUNNER_VERSION
 
 
 class Runner:
@@ -89,8 +95,107 @@ class Runner:
             raise ValueError(
                 "Runner.infer requires a Frame. Construct Runner(model, frame=frame)."
             )
-        logger.info("Running inference strategy '%s' for Frame '%s'", strategy.name, self.frame.name)
-        return strategy.infer(self.frame)
+        store = self.frame._require_state_store()
+        run_id = str(uuid4())
+        run_dir = store.runs_root / run_id
+        run_dir.mkdir(parents=True, exist_ok=True)
+
+        metadata_path = run_dir / "metadata.json"
+        diagnostics_path = run_dir / "diagnostics.json"
+        results_path = run_dir / "results.json"
+        observation_batch_ids = [batch.id for batch in self.frame.get_observation_batches()]
+        artifact_paths = {
+            "run_dir": str(run_dir),
+            "metadata": str(metadata_path),
+            "diagnostics": str(diagnostics_path),
+            "results": str(results_path),
+        }
+
+        initial_record = RunRecord.from_dict(
+            store.create_run_record(
+                self.frame.name,
+                self.frame.definition_hash,
+                strategy_id=strategy.name,
+                operation_kind="inference",
+                run_id=run_id,
+                observation_batch_ids=observation_batch_ids,
+                parameters={
+                    "observation_batch_count": len(observation_batch_ids),
+                },
+                versions={
+                    "runner": RUNNER_VERSION,
+                },
+                diagnostics={
+                    "status_detail": "created",
+                },
+                artifact_paths=artifact_paths,
+            )
+        )
+        _write_json_file(metadata_path, initial_record.to_dict())
+
+        logger.info(
+            "Running inference strategy '%s' for Frame '%s' (run_id=%s)",
+            strategy.name,
+            self.frame.name,
+            run_id,
+        )
+        try:
+            posteriors = strategy.infer(self.frame)
+        except Exception as error:
+            failure_diagnostics = {
+                "status_detail": "failed",
+                "posterior_count": 0,
+            }
+            error_traceback = traceback.format_exc()
+            _write_json_file(
+                diagnostics_path,
+                {
+                    "error_type": type(error).__name__,
+                    "error_message": str(error),
+                    "traceback": error_traceback,
+                },
+            )
+            failed_record = RunRecord.from_dict(
+                store.mark_run_failed(
+                    run_id,
+                    error_type=type(error).__name__,
+                    error_message=str(error),
+                    error_traceback=error_traceback,
+                    diagnostics=failure_diagnostics,
+                    artifact_paths=artifact_paths,
+                )
+            )
+            _write_json_file(metadata_path, failed_record.to_dict())
+            raise
+
+        _write_json_file(
+            results_path,
+            {
+                "posteriors": {
+                    variable_name: posterior.to_dict()
+                    for variable_name, posterior in posteriors.items()
+                }
+            },
+        )
+        _write_json_file(
+            diagnostics_path,
+            {
+                "status_detail": "succeeded",
+                "posterior_count": len(posteriors),
+            },
+        )
+        completed_record = RunRecord.from_dict(
+            store.mark_run_succeeded(
+                run_id,
+                diagnostics={
+                    "status_detail": "succeeded",
+                    "posterior_count": len(posteriors),
+                },
+                artifact_paths=artifact_paths,
+            )
+        )
+        _write_json_file(metadata_path, completed_record.to_dict())
+        return posteriors
 
     def predict(self, num_samples: int = 100):
         """
@@ -149,3 +254,9 @@ class Runner:
                 f"{role} targets {unknown} which the model does not sample. "
                 f"Known variables: {sorted(variable_names)}"
             )
+
+
+def _write_json_file(path: Path, payload: Mapping[str, Any]) -> None:
+    """Persist a human-readable run artifact JSON file."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(dict(payload), indent=2, sort_keys=True, allow_nan=False), encoding="utf-8")

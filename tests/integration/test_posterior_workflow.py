@@ -8,6 +8,7 @@ from grail.engine import Engine
 from grail.frame import Frame, FrameRepository
 from grail.inference import BetaBernoulliInference
 from grail.runner import Runner
+from grail.runner.utils import get_run, list_runs
 
 
 def test_a_posterior_survives_rebuilding_the_frame_from_yaml(
@@ -34,6 +35,16 @@ def test_a_posterior_survives_rebuilding_the_frame_from_yaml(
     assert posterior.metadata["successes"] == 4
     assert posterior.metadata["failures"] == 2
     assert posterior.metadata["processed_batch_ids"] == ["toss-001", "toss-002"]
+
+    runs = list_runs(resumed)
+    assert len(runs) == 3
+    assert runs[0].strategy_id == "beta-bernoulli-exact"
+    assert runs[0].status.value == "succeeded"
+    assert get_run(resumed, runs[0].id) == runs[0]
+    metadata_file = Path(runs[0].artifact_paths["metadata"])
+    assert metadata_file.exists()
+    metadata_payload = json.loads(metadata_file.read_text(encoding="utf-8"))
+    assert metadata_payload["id"] == runs[0].id
 
 
 def test_inspect_state_renders_the_full_diagnostic_snapshot(coin_frame: Frame):

@@ -37,6 +37,7 @@ TESTS_OUT = os.path.join(PROJECT_ROOT, "tests", "tmp")
 DATA_DIR = PROJECT_ROOT / "data"
 FRAME_SPECS_DIR = DATA_DIR / "frames"
 FRAME_REGISTRY_DB_PATH = DATA_DIR / "grail.sqlite3"
+RUNS_DIR = DATA_DIR / "runs"
 
 # Log filename will be based on the current time
 _default_name = f"{time.strftime('%Y-%m-%d-%H%M%S')}.log"

@@ -80,6 +80,30 @@ class GraphPosteriorRecord(SQLModel, table=True):
     updated_at: datetime = Field(default_factory=_utcnow, index=True)
 
 
+class GraphRunRecord(SQLModel, table=True):
+    """Immutable execution provenance plus lifecycle status transitions."""
+
+    __tablename__ = "graph_run_records"
+
+    id: str = Field(primary_key=True)
+    frame_state_id: int = Field(foreign_key="graph_frame_states.id", index=True)
+    strategy_id: str = Field(index=True)
+    operation_kind: str = Field(default="inference", index=True)
+    status: str = Field(index=True)
+    observation_batch_ids_json: str
+    parameters_json: str
+    versions_json: str
+    diagnostics_json: str
+    artifact_paths_json: str
+    error_type: str | None = None
+    error_message: str | None = None
+    error_traceback: str | None = None
+    created_at: datetime = Field(default_factory=_utcnow, index=True)
+    started_at: datetime = Field(default_factory=_utcnow)
+    completed_at: datetime | None = None
+    updated_at: datetime = Field(default_factory=_utcnow, index=True)
+
+
 @dataclass(frozen=True)
 class ObservationBatch:
     """A public, fully materialized observation batch."""
@@ -191,6 +215,8 @@ class FrameStateStore:
     def __init__(self, database_path: Path | str = FRAME_REGISTRY_DB_PATH) -> None:
         self.database_path = Path(database_path).expanduser().resolve()
         self.database_path.parent.mkdir(parents=True, exist_ok=True)
+        self.runs_root = self.database_path.parent / "runs"
+        self.runs_root.mkdir(parents=True, exist_ok=True)
         self.engine = create_engine(f"sqlite:///{self.database_path}")
         SQLModel.metadata.create_all(self.engine)
 
@@ -366,6 +392,161 @@ class FrameStateStore:
                 posteriors.setdefault(record.variable_name, _materialize_posterior(record))
             return posteriors
 
+    def create_run_record(
+        self,
+        frame_name: str,
+        definition_hash: str,
+        *,
+        strategy_id: str,
+        operation_kind: str = "inference",
+        status: str = "pending",
+        observation_batch_ids: list[str] | None = None,
+        parameters: Mapping[str, Any] | None = None,
+        versions: Mapping[str, Any] | None = None,
+        diagnostics: Mapping[str, Any] | None = None,
+        artifact_paths: Mapping[str, str] | None = None,
+        run_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Create a run record keyed to one frame hash namespace."""
+        resolved_run_id = run_id or str(uuid4())
+        created_at = _utcnow()
+        with Session(self.engine) as session:
+            if session.get(GraphRunRecord, resolved_run_id) is not None:
+                raise ValueError(f"run record '{resolved_run_id}' already exists")
+            frame_state_id = self._ensure_frame_state(session, frame_name, definition_hash)
+            record = GraphRunRecord(
+                id=resolved_run_id,
+                frame_state_id=frame_state_id,
+                strategy_id=strategy_id,
+                operation_kind=operation_kind,
+                status=status,
+                observation_batch_ids_json=_serialize_json_list(observation_batch_ids or []),
+                parameters_json=_serialize_mapping(parameters or {}),
+                versions_json=_serialize_mapping(versions or {}),
+                diagnostics_json=_serialize_mapping(diagnostics or {}),
+                artifact_paths_json=_serialize_mapping(dict(artifact_paths or {})),
+                created_at=created_at,
+                started_at=created_at,
+            )
+            session.add(record)
+            session.commit()
+            session.refresh(record)
+            return _materialize_run_record(record, frame_name=frame_name, definition_hash=definition_hash)
+
+    def mark_run_succeeded(
+        self,
+        run_id: str,
+        *,
+        diagnostics: Mapping[str, Any] | None = None,
+        artifact_paths: Mapping[str, str] | None = None,
+    ) -> dict[str, Any]:
+        """Finalize a run as succeeded."""
+        with Session(self.engine) as session:
+            record = session.get(GraphRunRecord, run_id)
+            if record is None:
+                raise KeyError(f"run record '{run_id}' was not found")
+            if diagnostics is not None:
+                merged_diagnostics = json.loads(record.diagnostics_json)
+                merged_diagnostics.update(_json_safe(dict(diagnostics)))
+                record.diagnostics_json = _serialize_mapping(merged_diagnostics)
+            if artifact_paths is not None:
+                merged_artifacts = json.loads(record.artifact_paths_json)
+                merged_artifacts.update(_json_safe(dict(artifact_paths)))
+                record.artifact_paths_json = _serialize_mapping(merged_artifacts)
+            record.status = "succeeded"
+            record.completed_at = _utcnow()
+            record.updated_at = _utcnow()
+            session.add(record)
+            session.commit()
+            session.refresh(record)
+            frame_record = session.get(GraphFrameStateRecord, record.frame_state_id)
+            assert frame_record is not None
+            return _materialize_run_record(
+                record,
+                frame_name=frame_record.frame_name,
+                definition_hash=frame_record.definition_hash,
+            )
+
+    def mark_run_failed(
+        self,
+        run_id: str,
+        *,
+        error_type: str,
+        error_message: str,
+        error_traceback: str,
+        diagnostics: Mapping[str, Any] | None = None,
+        artifact_paths: Mapping[str, str] | None = None,
+    ) -> dict[str, Any]:
+        """Finalize a run as failed with reproducible error context."""
+        with Session(self.engine) as session:
+            record = session.get(GraphRunRecord, run_id)
+            if record is None:
+                raise KeyError(f"run record '{run_id}' was not found")
+            if diagnostics is not None:
+                merged_diagnostics = json.loads(record.diagnostics_json)
+                merged_diagnostics.update(_json_safe(dict(diagnostics)))
+                record.diagnostics_json = _serialize_mapping(merged_diagnostics)
+            if artifact_paths is not None:
+                merged_artifacts = json.loads(record.artifact_paths_json)
+                merged_artifacts.update(_json_safe(dict(artifact_paths)))
+                record.artifact_paths_json = _serialize_mapping(merged_artifacts)
+            record.status = "failed"
+            record.error_type = error_type
+            record.error_message = error_message
+            record.error_traceback = error_traceback
+            record.completed_at = _utcnow()
+            record.updated_at = _utcnow()
+            session.add(record)
+            session.commit()
+            session.refresh(record)
+            frame_record = session.get(GraphFrameStateRecord, record.frame_state_id)
+            assert frame_record is not None
+            return _materialize_run_record(
+                record,
+                frame_name=frame_record.frame_name,
+                definition_hash=frame_record.definition_hash,
+            )
+
+    def list_run_records(
+        self,
+        frame_name: str,
+        definition_hash: str,
+        *,
+        strategy_id: str | None = None,
+        status: str | None = None,
+    ) -> list[dict[str, Any]]:
+        """List run records for one frame definition namespace."""
+        with Session(self.engine) as session:
+            frame_state_id = self._ensure_frame_state(session, frame_name, definition_hash)
+            statement = select(GraphRunRecord).where(GraphRunRecord.frame_state_id == frame_state_id)
+            if strategy_id is not None:
+                statement = statement.where(GraphRunRecord.strategy_id == strategy_id)
+            if status is not None:
+                statement = statement.where(GraphRunRecord.status == status)
+            records = session.exec(
+                statement.order_by(desc(col(GraphRunRecord.created_at)), desc(col(GraphRunRecord.id)))
+            ).all()
+            return [
+                _materialize_run_record(record, frame_name=frame_name, definition_hash=definition_hash)
+                for record in records
+            ]
+
+    def get_run_record(
+        self, frame_name: str, definition_hash: str, run_id: str
+    ) -> dict[str, Any] | None:
+        """Return one run record only if it belongs to this frame hash namespace."""
+        with Session(self.engine) as session:
+            frame_state_id = self._ensure_frame_state(session, frame_name, definition_hash)
+            record = session.exec(
+                select(GraphRunRecord).where(
+                    GraphRunRecord.id == run_id,
+                    GraphRunRecord.frame_state_id == frame_state_id,
+                )
+            ).first()
+            if record is None:
+                return None
+            return _materialize_run_record(record, frame_name=frame_name, definition_hash=definition_hash)
+
     def _ensure_frame_state(
         self, session: Session, frame_name: str, definition_hash: str
     ) -> int:
@@ -417,6 +598,32 @@ def _materialize_posterior(record: GraphPosteriorRecord) -> PosteriorState:
     )
 
 
+def _materialize_run_record(
+    record: GraphRunRecord, *, frame_name: str, definition_hash: str
+) -> dict[str, Any]:
+    """Deserialize one run ORM record into JSON-compatible metadata."""
+    return {
+        "id": record.id,
+        "frame_name": frame_name,
+        "definition_hash": definition_hash,
+        "strategy_id": record.strategy_id,
+        "operation_kind": record.operation_kind,
+        "status": record.status,
+        "observation_batch_ids": json.loads(record.observation_batch_ids_json),
+        "parameters": json.loads(record.parameters_json),
+        "versions": json.loads(record.versions_json),
+        "diagnostics": json.loads(record.diagnostics_json),
+        "artifact_paths": json.loads(record.artifact_paths_json),
+        "error_type": record.error_type,
+        "error_message": record.error_message,
+        "error_traceback": record.error_traceback,
+        "created_at": record.created_at.isoformat(),
+        "started_at": record.started_at.isoformat(),
+        "completed_at": record.completed_at.isoformat() if record.completed_at else None,
+        "updated_at": record.updated_at.isoformat(),
+    }
+
+
 def _normalize_values(values: Any) -> list[Any]:
     normalized = _json_safe(values)
     return normalized if isinstance(normalized, list) else [normalized]
@@ -450,4 +657,11 @@ def _payload_hash(values: list[Any]) -> str:
 
 def _serialize_mapping(value: Mapping[str, Any]) -> str:
     normalized = _json_safe(dict(value))
+    return json.dumps(normalized, sort_keys=True, allow_nan=False)
+
+
+def _serialize_json_list(value: list[Any]) -> str:
+    normalized = _json_safe(value)
+    if not isinstance(normalized, list):
+        raise TypeError("expected a list value")
     return json.dumps(normalized, sort_keys=True, allow_nan=False)
