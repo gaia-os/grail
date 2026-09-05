@@ -27,6 +27,9 @@ dependencies = [
   "google-genai>=2.20.0",
 ]
 
+[project.scripts]
+grail-dash = "grail.viz.cli:main"
+
 [project.optional-dependencies]
 # Extra groups that can be installed with: uv pip install .[viz] (or hatch -e ...)
 dev = [
@@ -36,9 +39,10 @@ dev = [
 ]
 
 viz = [
-    "plotly>=7.0.0",
-    "scipy>=1.18.1",
-    "streamlit>=1.63.0",
+  "plotly>=7.0.0",
+  "scipy>=1.18.1",
+  "streamlit>=1.63.0",
+  "watchdog>=6.0.0",
 ]
 
 all = [
@@ -48,6 +52,7 @@ all = [
   "plotly>=7.0.0",
   "scipy>=1.18.1",
   "streamlit>=1.63.0",
+  "watchdog>=6.0.0",
 ]
 
 [tool.hatch.build.targets.wheel]

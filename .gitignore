@@ -23,7 +23,9 @@ grail_workspace
 #==========================
 # AI things
 #==========================
+.agents
 .aiassistant
+.claude
 /planning/
 
 # OS things

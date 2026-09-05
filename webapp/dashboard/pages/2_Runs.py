@@ -7,7 +7,7 @@ from lib import list_runs
 import numpy as np
 import streamlit as st
 
-from grail.viz.distributions_viz import default_support, pdf_values
+from grail.viz.distributions import default_support, pdf_values
 
 st.title("Runs")
 

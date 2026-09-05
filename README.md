@@ -17,6 +17,22 @@ to get a sense of the usage flow of GRAIL and its purpose.
 
 ---
 
+## Visualization Dashboard
+
+A Streamlit dashboard lets you browse registered Frames (metadata, variables, causal graph, posteriors)
+and inspect persisted inference runs (diagnostics, results) without writing any code.
+
+Install the extra dependencies, then launch it:
+
+```bash
+uv sync --extra viz   # or: uv sync --all-extras
+uv run grail-dashboard
+```
+
+This opens the dashboard at `http://localhost:8501`, with a **Frames** page and a **Runs** page in the sidebar.
+
+---
+
 ## Current State (v0.x)
 
 - **Frames are live**: YAML model specs define variables, distributions, and dependencies, then validate/compile through `FrameRepository`.

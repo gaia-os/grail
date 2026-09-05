@@ -1,9 +1,8 @@
 """Run a complete toy workflow on the health example Frame."""
 
-import os
-
 import argparse
 import json
+import os
 from pathlib import Path
 from typing import Any
 
@@ -11,6 +10,7 @@ import torch
 
 from grail.engine import Engine
 from grail.frame import FrameRepository
+from grail.frame.registry import FrameRegistry
 from grail.inference import BetaBernoulliInference
 from grail.runner import Runner
 from grail.runner.utils import list_runs
@@ -27,6 +27,9 @@ def _tensor_mean(value: Any) -> float | None:
 def run(samples: int) -> int:
     repository = FrameRepository()
     frame = repository.load("examples/health_model.yaml")
+
+    spec_path = os.path.join(repository.root, "examples", "health_model.yaml")
+    FrameRegistry().register(frame.to_spec(), spec_path)
 
     engine = Engine(frame)
     runner = Runner(engine.get_model(), frame=frame)

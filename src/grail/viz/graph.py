@@ -14,13 +14,31 @@ def graph_to_plotly(frame: "Frame") -> go.Figure:
     graph = frame.graph.graph
     layout = nx.spring_layout(graph, seed=0)
 
-    edge_x: list[float | None] = []
-    edge_y: list[float | None] = []
+    edge_annotations: list[go.layout.Annotation] = []
     for source, target in graph.edges():
         x0, y0 = layout[source]
         x1, y1 = layout[target]
-        edge_x += [x0, x1, None]
-        edge_y += [y0, y1, None]
+        edge_annotations.append(
+            go.layout.Annotation(
+                x=x1,
+                y=y1,
+                ax=x0,
+                ay=y0,
+                xref="x",
+                yref="y",
+                axref="x",
+                ayref="y",
+                arrowhead=3,
+                arrowsize=1,
+                arrowwidth=1,
+                arrowcolor="#888",
+                arrowside="end+start",
+                startarrowhead=0,
+                standoff=10,
+                startstandoff=10,
+                showarrow=True,
+            )
+        )
 
     node_x = []
     node_y = []
@@ -32,9 +50,6 @@ def graph_to_plotly(frame: "Frame") -> go.Figure:
         node_y.append(y)
         node_labels.append(variable.name)
 
-    edge_trace = go.Scatter(
-        x=edge_x, y=edge_y, mode="lines", line={"width": 1, "color": "#888"}, hoverinfo="none"
-    )
     node_trace = go.Scatter(
         x=node_x,
         y=node_y,
@@ -45,13 +60,14 @@ def graph_to_plotly(frame: "Frame") -> go.Figure:
         hoverinfo="text",
     )
     figure = go.Figure(
-        data=[edge_trace, node_trace],
+        data=[node_trace],
         layout=go.Layout(
             title=f"Frame '{frame.name}' dependency graph",
             showlegend=False,
             xaxis={"visible": False},
             yaxis={"visible": False},
             margin={"l": 10, "r": 10, "t": 40, "b": 10},
+            annotations=edge_annotations,
         ),
     )
     return figure
