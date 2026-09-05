@@ -15,6 +15,17 @@ The core idea is simple: keep the model definition explicit and reviewable, then
 Highly recommended is to read this short [Illustrative Example](docs/illustrative_health_example.md)
 to get a sense of the usage flow of GRAIL and its purpose.
 
+## Installation
+
+```bash
+# Base
+uv pip install .
+# Extras
+uv pip install ".[extra1,extra2]"
+# All extras
+uv pip install -r pyproject.toml --all-extras
+```
+
 ---
 
 ## Visualization Dashboard
@@ -26,7 +37,7 @@ Install the extra dependencies, then launch it:
 
 ```bash
 uv sync --extra viz   # or: uv sync --all-extras
-uv run grail-dashboard
+uv run grail-dash
 ```
 
 This opens the dashboard at `http://localhost:8501`, with a **Frames** page and a **Runs** page in the sidebar.

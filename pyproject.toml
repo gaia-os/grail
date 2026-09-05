@@ -45,16 +45,6 @@ viz = [
   "watchdog>=6.0.0",
 ]
 
-all = [
-  "ruff>=0.14",
-  "black>=25.12",
-  "pytest>=9.0",
-  "plotly>=7.0.0",
-  "scipy>=1.18.1",
-  "streamlit>=1.63.0",
-  "watchdog>=6.0.0",
-]
-
 [tool.hatch.build.targets.wheel]
 packages = [
     #  { include = "grail", from = "src" }
