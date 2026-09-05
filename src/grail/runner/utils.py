@@ -1,11 +1,26 @@
 """Utility helpers for querying persisted run records."""
 
+import json
 from typing import TYPE_CHECKING
 
 from grail.runner.record import RunRecord
+from grail.settings import RUNS_DIR
 
 if TYPE_CHECKING:
     from grail.frame import Frame
+
+
+def list_all_runs() -> list[RunRecord]:
+    """List every persisted run record on disk, across all Frames.
+
+    Unlike :func:`list_runs`, this does not require a compiled `Frame` and
+    reads directly from each run directory's `metadata.json` artifact.
+    """
+    records = []
+    for metadata_path in sorted(RUNS_DIR.glob("*/metadata.json")):
+        payload = json.loads(metadata_path.read_text(encoding="utf-8"))
+        records.append(RunRecord.from_dict(payload))
+    return records
 
 
 def list_runs(

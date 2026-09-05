@@ -3,6 +3,9 @@
 #==========================
 # PROJECT
 #==========================
+# Sensitive things
+.secrets.json
+
 # DB things
 *.sqlite3
 *.sqlite3-*

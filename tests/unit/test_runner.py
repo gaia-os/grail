@@ -11,7 +11,7 @@ from grail.frame import Frame
 from grail.inference import BetaBernoulliInference
 from grail.inference.base import InferenceStrategy
 from grail.runner import Runner
-from grail.runner.utils import list_runs
+from grail.runner.utils import list_all_runs, list_runs
 
 
 @pytest.fixture
@@ -157,6 +157,19 @@ def test_infer_creates_a_succeeded_run_record(coin_frame: Frame):
     assert runs[0].status.value == "succeeded"
     assert runs[0].strategy_id == "beta-bernoulli-exact"
     assert runs[0].observation_batch_ids == ["batch-001"]
+
+
+def test_list_all_runs_reads_every_run_directory_on_disk(coin_frame: Frame, monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setattr("grail.runner.utils.RUNS_DIR", coin_frame._require_state_store().runs_root)
+    coin_frame.record_observations("Toss", [1, 0, 1], batch_id="batch-001")
+    runner = Runner(Engine(coin_frame).get_model(), frame=coin_frame)
+
+    runner.infer(BetaBernoulliInference())
+
+    runs = list_all_runs()
+    assert len(runs) == 1
+    assert runs[0].frame_name == "coin-model"
+    assert runs[0].status.value == "succeeded"
 
 
 def test_infer_records_failures_and_reraises(coin_frame: Frame):
